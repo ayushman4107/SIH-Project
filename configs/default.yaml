@@ -10,6 +10,9 @@ model:
   format: pytorch
   architecture_id: resnet18
   access_level: white_box
+  input_size: [32, 32]
+  mean: [0.4914, 0.4822, 0.4465]
+  std: [0.2470, 0.2435, 0.2616]
 references:
   model_directory: reference_models/resnet18
   dataset_manifest: reference_data/reference.json
