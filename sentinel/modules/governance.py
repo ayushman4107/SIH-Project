@@ -9,13 +9,12 @@ from typing import Any
 from uuid import uuid4
 
 from sentinel import __version__
-from sentinel.core.enums import Disposition, FindingType, ModuleStatus
+from sentinel.core.enums import Disposition, ModuleStatus
 from sentinel.core.models import Finding, ModuleAssessment, utc_now
 from sentinel.core.schema_registry import SchemaRegistry
 from sentinel.modules.inference_provenance import AuditLedger
 from sentinel.utils.atomic_io import RunStager, atomic_write_json
-from sentinel.utils.hashing import canonical_json_bytes, sha256_bytes, sha256_file
-
+from sentinel.utils.hashing import sha256_file
 
 DISPOSITION_RANK = {
     Disposition.INCONCLUSIVE: -1,
@@ -81,20 +80,28 @@ class GovernanceModule:
         return {
             "schema_version": "1.0",
             "report_id": report_id,
-            "implemented_checks": list(dict.fromkeys(static_manifest.get("implemented_checks", []))),
+            "implemented_checks": list(
+                dict.fromkeys(static_manifest.get("implemented_checks", []))
+            ),
             "executed_checks": list(dict.fromkeys(executed)),
             "unavailable_checks": unavailable,
             "supported_attack_classes": [
-                "label_errors", "near_duplicate_flooding", "embedding_outliers",
-                "source_anomaly_concentration", "weight_spectral_anomalies",
-                "protected_inference_tampering", "distribution_shift",
+                "label_errors",
+                "near_duplicate_flooding",
+                "embedding_outliers",
+                "source_anomaly_concentration",
+                "weight_spectral_anomalies",
+                "protected_inference_tampering",
+                "distribution_shift",
             ],
             "unsupported_attack_classes": list(
                 dict.fromkeys(static_manifest.get("unsupported_attack_classes", []))
             ),
             "trust_assumptions": [
-                "The Windows host, Sentinel code, Python runtime, operator, and configured reference assets are trusted.",
-                "The HMAC key remains secret and source files do not change during synchronous hashing and copying.",
+                "The Windows host, Sentinel code, Python runtime, operator, and configured "
+                "reference assets are trusted.",
+                "The HMAC key remains secret and source files do not change during synchronous "
+                "hashing and copying.",
             ],
             "security_limitations": list(dict.fromkeys(limitations)),
             "validation_scope": validation_scope,
@@ -120,19 +127,38 @@ class GovernanceModule:
                 role = "output"
             else:
                 role = "cache"
-            artifacts.append({
-                "artifact_id": str(uuid4()), "role": role, "storage": "copied",
-                "path": relative, "sha256": sha256_file(path), "size_bytes": path.stat().st_size,
-                "media_type": "application/json" if path.suffix == ".json" else "application/octet-stream",
+            artifacts.append(
+                {
+                    "artifact_id": str(uuid4()),
+                    "role": role,
+                    "storage": "copied",
+                    "path": relative,
+                    "sha256": sha256_file(path),
+                    "size_bytes": path.stat().st_size,
+                    "media_type": "application/json"
+                    if path.suffix == ".json"
+                    else "application/octet-stream",
+                    "created_at": utc_now(),
+                }
+            )
+        artifacts.append(
+            {
+                "artifact_id": str(uuid4()),
+                "role": "model",
+                "storage": "external",
+                "path": str(model_path.resolve(strict=True)),
+                "sha256": model_digest,
+                "size_bytes": model_path.stat().st_size,
+                "media_type": "application/octet-stream",
                 "created_at": utc_now(),
-            })
-        artifacts.append({
-            "artifact_id": str(uuid4()), "role": "model", "storage": "external",
-            "path": str(model_path.resolve(strict=True)), "sha256": model_digest,
-            "size_bytes": model_path.stat().st_size, "media_type": "application/octet-stream",
+            }
+        )
+        return {
+            "schema_version": "1.0",
+            "report_id": report_id,
             "created_at": utc_now(),
-        })
-        return {"schema_version": "1.0", "report_id": report_id, "created_at": utc_now(), "artifacts": artifacts}
+            "artifacts": artifacts,
+        }
 
     def finalize(
         self,
@@ -159,28 +185,37 @@ class GovernanceModule:
         findings = [item for assessment in all_assessments.values() for item in assessment.findings]
         disposition, contributors = overall_disposition(all_assessments, findings)
         coverage = self.build_coverage(
-            report_id=report_id, assessments=all_assessments, static_manifest=coverage_manifest,
-            validation_scope=validation_scope, additional_limitations=additional_limitations,
+            report_id=report_id,
+            assessments=all_assessments,
+            static_manifest=coverage_manifest,
+            validation_scope=validation_scope,
+            additional_limitations=additional_limitations,
         )
         atomic_write_json(staging / "coverage_statement.json", coverage)
         report = {
-            "schema_version": "1.0", "report_id": report_id, "run_timestamp": utc_now(),
+            "schema_version": "1.0",
+            "report_id": report_id,
+            "run_timestamp": utc_now(),
             "framework_version": __version__,
             "execution": {
-                "offline": True, "platform": "windows-x86_64",
-                "python_version": platform.python_version(), "seed": seed,
+                "offline": True,
+                "platform": "windows-x86_64",
+                "python_version": platform.python_version(),
+                "seed": seed,
                 "run_status": "completed",
             },
             "assets": assets,
             "module_assessments": {
-                name: all_assessments[name].to_report_dict() for name in ("F1", "F2", "F3", "F4", "F5")
+                name: all_assessments[name].to_report_dict()
+                for name in ("F1", "F2", "F3", "F4", "F5")
             },
             "findings": [finding.to_dict() for finding in findings],
             "source_assessments": source_assessments,
             "shift_assessment": shift_assessment,
             "overall_disposition": disposition.value,
             "disposition_trace": {
-                "policy": "maximum_disposition_v1", "contributing_finding_ids": contributors,
+                "policy": "maximum_disposition_v1",
+                "contributing_finding_ids": contributors,
                 "explanation": (
                     "All applicable modules were unavailable."
                     if disposition is Disposition.INCONCLUSIVE
@@ -193,16 +228,25 @@ class GovernanceModule:
         }
         atomic_write_json(staging / "assurance_report.json", report)
         if ledger is not None:
-            ledger.append("disposition_computed", {"overall_disposition": disposition.value, "contributors": contributors})
-            ledger.append("report_validated", {"report_sha256": sha256_file(staging / "assurance_report.json")})
+            ledger.append(
+                "disposition_computed",
+                {"overall_disposition": disposition.value, "contributors": contributors},
+            )
+            ledger.append(
+                "report_validated",
+                {"report_sha256": sha256_file(staging / "assurance_report.json")},
+            )
         atomic_write_json(staging / "audit_log.json", ledger.entries if ledger else [])
         manifest = self._manifest(staging, report_id, model_path, model_digest)
         atomic_write_json(staging / "run_manifest.json", manifest)
         if ledger is not None:
-            ledger.append("run_finalized", {
-                "manifest_sha256": sha256_file(staging / "run_manifest.json"),
-                "report_sha256": sha256_file(staging / "assurance_report.json"),
-            })
+            ledger.append(
+                "run_finalized",
+                {
+                    "manifest_sha256": sha256_file(staging / "run_manifest.json"),
+                    "report_sha256": sha256_file(staging / "assurance_report.json"),
+                },
+            )
             atomic_write_json(staging / "audit_log.json", ledger.entries)
         self.registry.validate("coverage_statement", coverage)
         self.registry.validate("assurance_report", report)

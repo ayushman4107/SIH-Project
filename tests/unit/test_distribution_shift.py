@@ -33,7 +33,11 @@ class DistributionShiftTests(unittest.TestCase):
             incoming_logits=incoming_logits,
             model_suspicious=True,
         )
-        drift = [item for item in result.assessment.findings if item.finding_type.value == "possible_drift"]
+        drift = [
+            item
+            for item in result.assessment.findings
+            if item.finding_type.value == "possible_drift"
+        ]
         self.assertEqual(drift[0].recommended_disposition.value, "review")
         self.assertEqual(result.model_dependency, "depends_on_suspicious_model")
 
@@ -41,8 +45,10 @@ class DistributionShiftTests(unittest.TestCase):
         uniform_reference = np.zeros((100, 2), dtype=np.float32)
         confident_incoming = np.tile([12.0, -12.0], (12, 1))
         low = DistributionShiftModule().analyze(
-            reference_embeddings=self.reference, incoming_embeddings=self.incoming,
-            reference_logits=uniform_reference, incoming_logits=confident_incoming,
+            reference_embeddings=self.reference,
+            incoming_embeddings=self.incoming,
+            reference_logits=uniform_reference,
+            incoming_logits=confident_incoming,
         )
         self.assertEqual(low.characterization, "suspicious")
 
@@ -50,8 +56,10 @@ class DistributionShiftTests(unittest.TestCase):
         ref_logits = rng.normal(size=(100, 3)).astype(np.float32)
         in_logits = rng.normal(size=(12, 3)).astype(np.float32)
         neutral = DistributionShiftModule().analyze(
-            reference_embeddings=self.reference, incoming_embeddings=self.incoming,
-            reference_logits=ref_logits, incoming_logits=in_logits,
+            reference_embeddings=self.reference,
+            incoming_embeddings=self.incoming,
+            reference_logits=ref_logits,
+            incoming_logits=in_logits,
         )
         self.assertEqual(neutral.characterization, "inconclusive")
 

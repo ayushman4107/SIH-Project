@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
 from sklearn.covariance import LedoitWolf
@@ -27,7 +26,9 @@ def predictive_entropy(logits: np.ndarray, epsilon: float = 1e-12) -> np.ndarray
     return -np.sum(probabilities * np.log(np.maximum(probabilities, epsilon)), axis=1)
 
 
-def mahalanobis_distances(values: np.ndarray, location: np.ndarray, precision: np.ndarray) -> np.ndarray:
+def mahalanobis_distances(
+    values: np.ndarray, location: np.ndarray, precision: np.ndarray
+) -> np.ndarray:
     centered = np.asarray(values, dtype=np.float64) - location
     squared = np.einsum("ij,jk,ik->i", centered, precision, centered)
     return np.sqrt(np.maximum(squared, 0.0))
@@ -45,7 +46,14 @@ class DistributionShiftResult:
 
 
 class DistributionShiftModule:
-    def __init__(self, *, ood_percentile: float = 0.95, low_ratio: float = 0.7, high_ratio: float = 1.3, epsilon: float = 1e-12) -> None:
+    def __init__(
+        self,
+        *,
+        ood_percentile: float = 0.95,
+        low_ratio: float = 0.7,
+        high_ratio: float = 1.3,
+        epsilon: float = 1e-12,
+    ) -> None:
         self.ood_percentile = ood_percentile
         self.low_ratio = low_ratio
         self.high_ratio = high_ratio
@@ -65,13 +73,22 @@ class DistributionShiftModule:
         incoming = np.asarray(incoming_embeddings, dtype=np.float64)
         if reference.ndim != 2 or incoming.ndim != 2 or reference.shape[1] != incoming.shape[1]:
             raise ValueError("reference and incoming embeddings must share feature dimensions")
-        if len(reference) < 2 or len(incoming) < 1 or not np.all(np.isfinite(reference)) or not np.all(np.isfinite(incoming)):
+        if (
+            len(reference) < 2
+            or len(incoming) < 1
+            or not np.all(np.isfinite(reference))
+            or not np.all(np.isfinite(incoming))
+        ):
             raise ValueError("finite reference and incoming embeddings are required")
         if len(reference_logits) != len(reference) or len(incoming_logits) != len(incoming):
             raise ValueError("logit and embedding sample counts must match")
         estimator = LedoitWolf().fit(reference)
-        reference_distances = mahalanobis_distances(reference, estimator.location_, estimator.precision_)
-        incoming_distances = mahalanobis_distances(incoming, estimator.location_, estimator.precision_)
+        reference_distances = mahalanobis_distances(
+            reference, estimator.location_, estimator.precision_
+        )
+        incoming_distances = mahalanobis_distances(
+            incoming, estimator.location_, estimator.precision_
+        )
         threshold = float(np.quantile(reference_distances, self.ood_percentile))
         ids = incoming_ids or [str(index) for index in range(len(incoming))]
         if len(ids) != len(incoming):
@@ -80,47 +97,101 @@ class DistributionShiftModule:
         for sample_id, distance in zip(ids, incoming_distances, strict=True):
             confidence = empirical_percentile(float(distance), reference_distances)
             if distance > threshold:
-                findings.append(Finding(
-                    finding_type=FindingType.OOD_SAMPLE, pillar=Pillar.F4,
-                    affected_asset=AssetLocator("sample", sample_id),
-                    severity=Severity.HIGH if confidence >= 0.95 else Severity.MEDIUM,
-                    raw_score=float(distance), decision_threshold=threshold, confidence=confidence,
-                    confidence_normalizer="reference_percentile_v1",
-                    human_readable_reason="Incoming embedding exceeds the reference Mahalanobis threshold.",
-                    evidence={"reference_percentile": confidence}, method=MethodIdentity("ledoit_wolf_mahalanobis", "1"),
-                    recommended_disposition=Disposition.QUARANTINE if confidence >= 0.95 else Disposition.REVIEW,
-                ))
+                findings.append(
+                    Finding(
+                        finding_type=FindingType.OOD_SAMPLE,
+                        pillar=Pillar.F4,
+                        affected_asset=AssetLocator("sample", sample_id),
+                        severity=Severity.HIGH if confidence >= 0.95 else Severity.MEDIUM,
+                        raw_score=float(distance),
+                        decision_threshold=threshold,
+                        confidence=confidence,
+                        confidence_normalizer="reference_percentile_v1",
+                        human_readable_reason=(
+                            "Incoming embedding exceeds the reference Mahalanobis threshold."
+                        ),
+                        evidence={"reference_percentile": confidence},
+                        method=MethodIdentity("ledoit_wolf_mahalanobis", "1"),
+                        recommended_disposition=Disposition.QUARANTINE
+                        if confidence >= 0.95
+                        else Disposition.REVIEW,
+                    )
+                )
         reference_entropy = float(np.mean(predictive_entropy(reference_logits)))
         incoming_entropy = float(np.mean(predictive_entropy(incoming_logits)))
         ratio = incoming_entropy / max(reference_entropy, self.epsilon)
-        dependency = "depends_on_suspicious_model" if model_suspicious else "submitted_model_not_flagged_by_F2"
+        dependency = (
+            "depends_on_suspicious_model"
+            if model_suspicious
+            else "submitted_model_not_flagged_by_F2"
+        )
         if ratio >= self.high_ratio:
             characterization = "possible_drift"
-            findings.append(Finding(
-                finding_type=FindingType.POSSIBLE_DRIFT, pillar=Pillar.F4,
-                affected_asset=AssetLocator("inference_batch", "incoming"), severity=Severity.MEDIUM,
-                raw_score=ratio, decision_threshold=self.high_ratio,
-                confidence=min(1.0, 0.70 + 0.30 * min((ratio - self.high_ratio) / self.high_ratio, 1.0)),
-                confidence_normalizer="fixed_review_policy_v1",
-                human_readable_reason="Mean predictive entropy increased by at least the configured ratio.",
-                evidence={"reference_entropy": reference_entropy, "incoming_entropy": incoming_entropy, "model_dependency": dependency},
-                method=MethodIdentity("predictive_entropy_ratio", "1"), recommended_disposition=Disposition.REVIEW,
-            ))
+            findings.append(
+                Finding(
+                    finding_type=FindingType.POSSIBLE_DRIFT,
+                    pillar=Pillar.F4,
+                    affected_asset=AssetLocator("inference_batch", "incoming"),
+                    severity=Severity.MEDIUM,
+                    raw_score=ratio,
+                    decision_threshold=self.high_ratio,
+                    confidence=min(
+                        1.0, 0.70 + 0.30 * min((ratio - self.high_ratio) / self.high_ratio, 1.0)
+                    ),
+                    confidence_normalizer="fixed_review_policy_v1",
+                    human_readable_reason=(
+                        "Mean predictive entropy increased by at least the configured ratio."
+                    ),
+                    evidence={
+                        "reference_entropy": reference_entropy,
+                        "incoming_entropy": incoming_entropy,
+                        "model_dependency": dependency,
+                    },
+                    method=MethodIdentity("predictive_entropy_ratio", "1"),
+                    recommended_disposition=Disposition.REVIEW,
+                )
+            )
         elif ratio <= self.low_ratio:
             characterization = "suspicious"
             confidence = low_entropy_confidence(ratio)
-            findings.append(Finding(
-                finding_type=FindingType.SUSPICIOUS_ENTROPY_SHIFT, pillar=Pillar.F4,
-                affected_asset=AssetLocator("inference_batch", "incoming"),
-                severity=Severity.HIGH if confidence >= 0.95 else Severity.MEDIUM,
-                raw_score=ratio, decision_threshold=self.low_ratio, confidence=confidence,
-                confidence_normalizer="low_entropy_ratio_v1",
-                human_readable_reason="Mean predictive entropy decreased by at least the configured ratio.",
-                evidence={"reference_entropy": reference_entropy, "incoming_entropy": incoming_entropy, "model_dependency": dependency},
-                method=MethodIdentity("predictive_entropy_ratio", "1"),
-                recommended_disposition=Disposition.QUARANTINE if confidence >= 0.95 else Disposition.REVIEW,
-            ))
+            findings.append(
+                Finding(
+                    finding_type=FindingType.SUSPICIOUS_ENTROPY_SHIFT,
+                    pillar=Pillar.F4,
+                    affected_asset=AssetLocator("inference_batch", "incoming"),
+                    severity=Severity.HIGH if confidence >= 0.95 else Severity.MEDIUM,
+                    raw_score=ratio,
+                    decision_threshold=self.low_ratio,
+                    confidence=confidence,
+                    confidence_normalizer="low_entropy_ratio_v1",
+                    human_readable_reason=(
+                        "Mean predictive entropy decreased by at least the configured ratio."
+                    ),
+                    evidence={
+                        "reference_entropy": reference_entropy,
+                        "incoming_entropy": incoming_entropy,
+                        "model_dependency": dependency,
+                    },
+                    method=MethodIdentity("predictive_entropy_ratio", "1"),
+                    recommended_disposition=Disposition.QUARANTINE
+                    if confidence >= 0.95
+                    else Disposition.REVIEW,
+                )
+            )
         else:
             characterization = "inconclusive"
-        assessment = ModuleAssessment(ModuleStatus.COMPLETED, tuple(findings), ("ledoit_wolf_mahalanobis", "predictive_entropy_ratio"), ())
-        return DistributionShiftResult(assessment, characterization, ratio, reference_entropy, incoming_entropy, dependency, threshold)
+        assessment = ModuleAssessment(
+            ModuleStatus.COMPLETED,
+            tuple(findings),
+            ("ledoit_wolf_mahalanobis", "predictive_entropy_ratio"),
+            (),
+        )
+        return DistributionShiftResult(
+            assessment,
+            characterization,
+            ratio,
+            reference_entropy,
+            incoming_entropy,
+            dependency,
+            threshold,
+        )

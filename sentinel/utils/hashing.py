@@ -10,7 +10,6 @@ from typing import Any, BinaryIO
 
 from sentinel.core.errors import ConfigurationError
 
-
 HASH_CHUNK_SIZE = 1024 * 1024
 
 
@@ -48,7 +47,9 @@ def parse_secret_key(value: str | None) -> bytes:
     try:
         key = bytes.fromhex(value)
     except ValueError as exc:
-        raise ConfigurationError("SENTINEL_SECRET_KEY must contain only hexadecimal characters") from exc
+        raise ConfigurationError(
+            "SENTINEL_SECRET_KEY must contain only hexadecimal characters"
+        ) from exc
     if len(key) != 32:
         raise ConfigurationError("SENTINEL_SECRET_KEY must decode to exactly 32 bytes")
     return key

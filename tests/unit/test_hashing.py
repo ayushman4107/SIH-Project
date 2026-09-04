@@ -32,7 +32,9 @@ class HashingTests(unittest.TestCase):
     def test_binding_vector_uses_exact_domain_and_separator(self) -> None:
         key = bytes(range(32))
         values = ("01" * 32, "02" * 32, "03" * 32, "04" * 32)
-        expected = hmac.new(key, ("binding|" + "|".join(values)).encode(), hashlib.sha256).hexdigest()
+        expected = hmac.new(
+            key, ("binding|" + "|".join(values)).encode(), hashlib.sha256
+        ).hexdigest()
         self.assertEqual(binding_hmac(key, *values), expected)
 
     def test_ledger_hmac_covers_all_supplied_fields(self) -> None:

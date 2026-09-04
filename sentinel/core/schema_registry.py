@@ -8,7 +8,6 @@ from typing import Any
 
 from .errors import ValidationError
 
-
 SCHEMA_FILES = {
     "finding": "finding.schema.json",
     "assurance_report": "assurance-report.schema.json",

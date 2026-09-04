@@ -9,7 +9,6 @@ from typing import Any
 
 from sentinel.core.errors import ConfigurationError
 
-
 DEFAULTS: dict[str, Any] = {
     "schema_version": "1.0",
     "seed": 42,
@@ -37,8 +36,13 @@ DEFAULTS: dict[str, Any] = {
 }
 
 ALLOWED_TOP_LEVEL = set(DEFAULTS) | {
-    "dataset_manifest", "dataset_root", "model", "references", "extractor_weights",
-    "inference_sample_ids", "output_root",
+    "dataset_manifest",
+    "dataset_root",
+    "model",
+    "references",
+    "extractor_weights",
+    "inference_sample_ids",
+    "output_root",
 }
 
 

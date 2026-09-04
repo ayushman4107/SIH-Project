@@ -7,7 +7,13 @@ from pathlib import Path
 from uuid import UUID
 
 from sentinel.core.enums import Disposition, FindingType, ModuleStatus, Pillar, Severity
-from sentinel.core.models import AssetLocator, Finding, MethodIdentity, ModuleAssessment, UnavailableMethod
+from sentinel.core.models import (
+    AssetLocator,
+    Finding,
+    MethodIdentity,
+    ModuleAssessment,
+    UnavailableMethod,
+)
 from sentinel.modules.governance import GovernanceModule, overall_disposition
 from sentinel.modules.inference_provenance import AuditLedger
 from sentinel.utils.atomic_io import RunStager
@@ -16,12 +22,18 @@ from sentinel.utils.hashing import sha256_file
 
 def _finding(disposition: Disposition) -> Finding:
     return Finding(
-        finding_type=FindingType.STATISTICAL_OUTLIER, pillar=Pillar.F1,
-        affected_asset=AssetLocator("sample", "s1"), severity=Severity.HIGH,
-        raw_score=1.0, decision_threshold=0.5,
+        finding_type=FindingType.STATISTICAL_OUTLIER,
+        pillar=Pillar.F1,
+        affected_asset=AssetLocator("sample", "s1"),
+        severity=Severity.HIGH,
+        raw_score=1.0,
+        decision_threshold=0.5,
         confidence=0.95 if disposition is Disposition.QUARANTINE else 0.70,
-        confidence_normalizer="fixture", human_readable_reason="fixture", evidence={},
-        method=MethodIdentity("fixture", "1"), recommended_disposition=disposition,
+        confidence_normalizer="fixture",
+        human_readable_reason="fixture",
+        evidence={},
+        method=MethodIdentity("fixture", "1"),
+        recommended_disposition=disposition,
     )
 
 
@@ -60,12 +72,26 @@ class GovernanceTests(unittest.TestCase):
                 for pillar in ("F1", "F2", "F3", "F4")
             }
             result = GovernanceModule().finalize(
-                stager=stager, assessments=assessments,
+                stager=stager,
+                assessments=assessments,
                 assets={"dataset": {}, "model": {}, "references": {}},
-                source_assessments=[], shift_assessment=None,
-                coverage_manifest={"implemented_checks": ["one"], "unsupported_attack_classes": ["tail_truncation"]},
-                validation_scope={"dataset": "fixture", "architectures": ["resnet18"], "sample_sizes": {"submitted": 1}, "seeds": [42], "status": "not_run"},
-                model_path=model, model_digest=sha256_file(model), seed=42, ledger=ledger,
+                source_assessments=[],
+                shift_assessment=None,
+                coverage_manifest={
+                    "implemented_checks": ["one"],
+                    "unsupported_attack_classes": ["tail_truncation"],
+                },
+                validation_scope={
+                    "dataset": "fixture",
+                    "architectures": ["resnet18"],
+                    "sample_sizes": {"submitted": 1},
+                    "seeds": [42],
+                    "status": "not_run",
+                },
+                model_path=model,
+                model_digest=sha256_file(model),
+                seed=42,
+                ledger=ledger,
             )
             self.assertEqual(result.overall_disposition, Disposition.ACCEPT)
             self.assertTrue(result.run_dir.is_dir())
@@ -73,10 +99,18 @@ class GovernanceTests(unittest.TestCase):
             manifest = json.loads((result.run_dir / "run_manifest.json").read_text())
             audit = json.loads((result.run_dir / "audit_log.json").read_text())
             self.assertEqual(report["overall_disposition"], "accept")
-            self.assertFalse(any(item["path"] == "audit_log.json" for item in manifest["artifacts"]))
+            self.assertFalse(
+                any(item["path"] == "audit_log.json" for item in manifest["artifacts"])
+            )
             self.assertEqual(audit[-1]["action"], "run_finalized")
-            self.assertEqual(audit[-1]["payload"]["manifest_sha256"], sha256_file(result.run_dir / "run_manifest.json"))
-            self.assertEqual(AuditLedger(b"k" * 32, audit).verify(expected_length=len(audit)).verdict.value, "valid")
+            self.assertEqual(
+                audit[-1]["payload"]["manifest_sha256"],
+                sha256_file(result.run_dir / "run_manifest.json"),
+            )
+            self.assertEqual(
+                AuditLedger(b"k" * 32, audit).verify(expected_length=len(audit)).verdict.value,
+                "valid",
+            )
 
 
 if __name__ == "__main__":

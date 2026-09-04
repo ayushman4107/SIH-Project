@@ -12,12 +12,9 @@ from typing import Any
 
 import numpy as np
 
-
 TARGET_CLASS = 0
 INITIAL_SEEDS = (42, 43, 44, 45, 46)
-CHECKERBOARD = np.array(
-    [[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 1.0]], dtype=np.float32
-)
+CHECKERBOARD = np.array([[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 1.0]], dtype=np.float32)
 
 
 def apply_checkerboard(image: np.ndarray) -> np.ndarray:
@@ -82,7 +79,9 @@ def evaluate_quality_gate(
         reasons.append("clean_test_accuracy_below_0.75")
     if not rate_ok:
         reasons.append("triggered_rate_gate_failed")
-    return QualityGate(model_kind, clean_test_accuracy, triggered_target_rate, accepted, ";".join(reasons) or None)
+    return QualityGate(
+        model_kind, clean_test_accuracy, triggered_target_rate, accepted, ";".join(reasons) or None
+    )
 
 
 @dataclass(frozen=True)
@@ -154,7 +153,9 @@ class _BadNetsDataset:
         if should_stamp:
             torch, _, _ = _torch_stack()
             tensor = _stamp_tensor(tensor, torch)
-        output_label = TARGET_CLASS if index in self.poison_indices and self.relabel_poisoned else label
+        output_label = (
+            TARGET_CLASS if index in self.poison_indices and self.relabel_poisoned else label
+        )
         return self.normalize(tensor), int(output_label)
 
 
@@ -205,23 +206,25 @@ def train_attempt(
         else set()
     )
     train_pre = transforms.Compose(
-        [transforms.RandomCrop(32, padding=4), transforms.RandomHorizontalFlip(), transforms.ToTensor()]
+        [
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+        ]
     )
     test_pre = transforms.ToTensor()
     normalize = transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616))
-    train_data = _BadNetsDataset(
-        train_base, train_pre, normalize, poison, relabel_poisoned=True
-    )
+    train_data = _BadNetsDataset(train_base, train_pre, normalize, poison, relabel_poisoned=True)
     clean_test = _BadNetsDataset(test_base, test_pre, normalize)
-    triggered_test = _BadNetsDataset(
-        test_base, test_pre, normalize, trigger_all_non_target=True
-    )
+    triggered_test = _BadNetsDataset(test_base, test_pre, normalize, trigger_all_non_target=True)
     generator = torch.Generator().manual_seed(seed)
     train_loader = torch.utils.data.DataLoader(
         train_data, batch_size=batch_size, shuffle=True, num_workers=0, generator=generator
     )
     clean_loader = torch.utils.data.DataLoader(clean_test, batch_size=batch_size, num_workers=0)
-    trigger_loader = torch.utils.data.DataLoader(triggered_test, batch_size=batch_size, num_workers=0)
+    trigger_loader = torch.utils.data.DataLoader(
+        triggered_test, batch_size=batch_size, num_workers=0
+    )
     model = _architecture(architecture_id, models).to(device)
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
@@ -246,8 +249,16 @@ def train_attempt(
         os.replace(temporary, destination)
         artifact = str(destination)
     return TrainingAttempt(
-        architecture_id, model_kind, seed, epochs, len(poison), clean_accuracy,
-        target_rate, gate.accepted, gate.reason, artifact
+        architecture_id,
+        model_kind,
+        seed,
+        epochs,
+        len(poison),
+        clean_accuracy,
+        target_rate,
+        gate.accepted,
+        gate.reason,
+        artifact,
     )
 
 
@@ -283,8 +294,10 @@ def main() -> int:
         print(args.metadata)
         return 0
     torch, _, _ = _torch_stack()
-    device = "cuda" if args.device == "auto" and torch.cuda.is_available() else (
-        "cpu" if args.device == "auto" else args.device
+    device = (
+        "cuda"
+        if args.device == "auto" and torch.cuda.is_available()
+        else ("cpu" if args.device == "auto" else args.device)
     )
     attempts: list[TrainingAttempt] = []
     for architecture_id, counts in _plan()["architectures"].items():
@@ -294,9 +307,14 @@ def main() -> int:
             attempted = 0
             while accepted < required and attempted < args.max_attempts_per_kind:
                 result = train_attempt(
-                    architecture_id=architecture_id, model_kind=model_kind, seed=seed,
-                    data_root=args.data_root, output_dir=args.output_dir, device=device,
-                    epochs=args.epochs, batch_size=args.batch_size,
+                    architecture_id=architecture_id,
+                    model_kind=model_kind,
+                    seed=seed,
+                    data_root=args.data_root,
+                    output_dir=args.output_dir,
+                    device=device,
+                    epochs=args.epochs,
+                    batch_size=args.batch_size,
                 )
                 attempts.append(result)
                 accepted += int(result.accepted)
@@ -304,7 +322,14 @@ def main() -> int:
                 seed += 1
                 args.metadata.parent.mkdir(parents=True, exist_ok=True)
                 args.metadata.write_text(
-                    json.dumps({"plan": _plan(), "device": device, "attempts": [asdict(item) for item in attempts]}, indent=2),
+                    json.dumps(
+                        {
+                            "plan": _plan(),
+                            "device": device,
+                            "attempts": [asdict(item) for item in attempts],
+                        },
+                        indent=2,
+                    ),
                     encoding="utf-8",
                 )
             if accepted < required:

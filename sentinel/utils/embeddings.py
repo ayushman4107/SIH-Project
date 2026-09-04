@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import io
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 import numpy as np
 from PIL import Image
 
 from sentinel.core.errors import ValidationError
 from sentinel.utils.hashing import canonical_json_bytes, sha256_bytes, sha256_file
-
 
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
@@ -51,7 +50,9 @@ class EmbeddingExtractor:
         except ImportError as exc:
             raise ValidationError("PyTorch and torchvision are required for embeddings") from exc
         model = models.resnet18(weights=None)
-        state = torch.load(self.weights_path.resolve(strict=True), map_location="cpu", weights_only=True)
+        state = torch.load(
+            self.weights_path.resolve(strict=True), map_location="cpu", weights_only=True
+        )
         if isinstance(state, dict) and "state_dict" in state:
             state = state["state_dict"]
         model.load_state_dict(state, strict=True)
@@ -67,7 +68,10 @@ class EmbeddingExtractor:
             ]
         )
         self.preprocessing = {
-            "resize": [224, 224], "antialias": True, "mean": IMAGENET_MEAN, "std": IMAGENET_STD
+            "resize": [224, 224],
+            "antialias": True,
+            "mean": IMAGENET_MEAN,
+            "std": IMAGENET_STD,
         }
 
     def extract(self, image_paths: Iterable[Path]) -> np.ndarray:

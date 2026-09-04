@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
-from sentinel.core.errors import CapabilityDeferredError, ValidationError
 from sentinel.core.enums import ModelFormat
+from sentinel.core.errors import CapabilityDeferredError, ValidationError
 from sentinel.utils.hashing import sha256_file
 
 
@@ -66,7 +66,15 @@ def load_pytorch_state_dict(path: Path, architecture_id: str, num_classes: int) 
         raise ValidationError("PyTorch artifact does not contain a state dictionary")
     model.load_state_dict(state, strict=True)
     model.eval()
-    return ModelAdapter(model, resolved, ModelFormat.PYTORCH, architecture_id, num_classes, "white_box", sha256_file(resolved))
+    return ModelAdapter(
+        model,
+        resolved,
+        ModelFormat.PYTORCH,
+        architecture_id,
+        num_classes,
+        "white_box",
+        sha256_file(resolved),
+    )
 
 
 def load_torchscript(path: Path, architecture_id: str, num_classes: int) -> ModelAdapter:
@@ -74,10 +82,20 @@ def load_torchscript(path: Path, architecture_id: str, num_classes: int) -> Mode
     resolved = path.resolve(strict=True)
     model = torch.jit.load(str(resolved), map_location="cpu")
     model.eval()
-    return ModelAdapter(model, resolved, ModelFormat.TORCHSCRIPT, architecture_id, num_classes, "white_box", sha256_file(resolved))
+    return ModelAdapter(
+        model,
+        resolved,
+        ModelFormat.TORCHSCRIPT,
+        architecture_id,
+        num_classes,
+        "white_box",
+        sha256_file(resolved),
+    )
 
 
-def load_model(path: Path, model_format: str, architecture_id: str, num_classes: int) -> ModelAdapter:
+def load_model(
+    path: Path, model_format: str, architecture_id: str, num_classes: int
+) -> ModelAdapter:
     if model_format == ModelFormat.PYTORCH.value:
         return load_pytorch_state_dict(path, architecture_id, num_classes)
     if model_format == ModelFormat.TORCHSCRIPT.value:

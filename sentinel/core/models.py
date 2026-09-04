@@ -22,7 +22,7 @@ def wire_value(value: Any) -> Any:
         return str(value)
     if isinstance(value, Path):
         return str(value)
-    if isinstance(value, (tuple, list)):
+    if isinstance(value, tuple | list):
         return [wire_value(item) for item in value]
     if isinstance(value, dict):
         return {key: wire_value(item) for key, item in value.items()}

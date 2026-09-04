@@ -17,7 +17,9 @@ class DatasetAdapterTests(unittest.TestCase):
         root.mkdir()
         Image.new("RGB", (8, 8), (1, 2, 3)).save(root / "one.png")
         manifest = Path(directory) / "manifest.json"
-        manifest.write_text(json.dumps({"dataset_id": "fixture", "samples": rows}), encoding="utf-8")
+        manifest.write_text(
+            json.dumps({"dataset_id": "fixture", "samples": rows}), encoding="utf-8"
+        )
         return manifest, root
 
     def test_manifest_preserves_occurrences_and_normalizes_source(self) -> None:
