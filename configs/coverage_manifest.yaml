@@ -1,0 +1,25 @@
+implemented_checks:
+  - cleanlab_label_quality
+  - phash_duplicate_detection
+  - embedding_cosine_duplicates
+  - isolation_forest_outliers
+  - source_concentration
+  - weight_spectral_analysis
+  - inference_hmac_binding
+  - authenticated_audit_chain
+  - mahalanobis_ood
+  - predictive_entropy_ratio
+unsupported_attack_classes:
+  - trigger_discovery
+  - black_box_fingerprinting
+  - bounding_box_tampering
+  - architectural_backdoors
+  - model_laundering_or_distillation
+  - adversarial_patches
+  - semantic_cause_attribution
+  - blended_or_physical_triggers
+  - federated_poisoning
+  - hardware_compromise
+  - cross_session_replay
+  - host_compromise
+  - tail_truncation_without_expected_length

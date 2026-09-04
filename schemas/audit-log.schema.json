@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.local/schemas/audit-log.schema.json",
+  "title": "SentinelAuditLog",
+  "type": "array",
+  "items": {
+    "type": "object", "additionalProperties": false,
+    "required": ["entry_id", "sequence_number", "timestamp", "action", "actor", "status", "payload", "previous_entry_hash", "entry_hmac"],
+    "properties": {
+      "entry_id": {"type": "string", "format": "uuid"},
+      "sequence_number": {"type": "integer", "minimum": 1},
+      "timestamp": {"type": "string", "format": "date-time"},
+      "action": {"type": "string", "enum": ["run_started", "module_started", "module_completed", "module_unavailable", "finding_recorded", "inference_signed", "verification_completed", "disposition_computed", "report_validated", "run_finalized"]},
+      "actor": {"const": "sentinel-phase2"},
+      "status": {"type": "string", "enum": ["success", "partial", "unavailable", "failed"]},
+      "payload": {"type": "object"},
+      "previous_entry_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+      "entry_hmac": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    }
+  }
+}

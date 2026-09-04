@@ -1,0 +1,11 @@
+detectors:
+  review_threshold: 0.70
+  quarantine_threshold: 0.95
+  phash_hamming_threshold: 8
+  cosine_threshold: 0.95
+  cosine_neighbors: 10
+  outlier_percentile: 0.95
+  source_p_value: 0.01
+  source_rate_multiplier: 2.0
+  entropy_low_ratio: 0.7
+  entropy_high_ratio: 1.3

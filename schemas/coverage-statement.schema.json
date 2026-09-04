@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.local/schemas/coverage-statement.schema.json",
+  "title": "SentinelCoverageStatement",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "report_id", "implemented_checks", "executed_checks", "unavailable_checks", "supported_attack_classes", "unsupported_attack_classes", "trust_assumptions", "security_limitations", "validation_scope"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "report_id": {"type": "string", "format": "uuid"},
+    "implemented_checks": {"$ref": "#/$defs/uniqueStrings"},
+    "executed_checks": {"$ref": "#/$defs/uniqueStrings"},
+    "unavailable_checks": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "reason"], "properties": {"name": {"type": "string", "minLength": 1}, "reason": {"type": "string", "minLength": 1}}}},
+    "supported_attack_classes": {"$ref": "#/$defs/uniqueStrings"},
+    "unsupported_attack_classes": {"$ref": "#/$defs/uniqueStrings"},
+    "trust_assumptions": {"$ref": "#/$defs/uniqueStrings"},
+    "security_limitations": {"$ref": "#/$defs/uniqueStrings"},
+    "validation_scope": {"type": "object", "additionalProperties": false, "required": ["dataset", "architectures", "sample_sizes", "seeds", "status"], "properties": {"dataset": {"type": "string", "minLength": 1}, "architectures": {"$ref": "#/$defs/uniqueStrings"}, "sample_sizes": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}}, "seeds": {"type": "array", "items": {"type": "integer"}, "uniqueItems": true}, "status": {"type": "string", "enum": ["not_run", "passed", "failed", "partial"]}, "metrics_ref": {"type": ["string", "null"]}}}
+  },
+  "$defs": {"uniqueStrings": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}}
+}

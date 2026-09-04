@@ -1,0 +1,6 @@
+{
+  "finding_id": "not-a-uuid",
+  "finding_type": "label_error",
+  "pillar": "F1",
+  "confidence": 2.0
+}
