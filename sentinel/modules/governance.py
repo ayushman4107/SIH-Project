@@ -58,6 +58,7 @@ class GovernanceModule:
         assessments: dict[str, ModuleAssessment],
         static_manifest: dict[str, Any],
         validation_scope: dict[str, Any],
+        acceptance_gates: dict[str, Any],
         additional_limitations: list[str] | None = None,
     ) -> dict[str, Any]:
         executed = sorted(
@@ -105,6 +106,8 @@ class GovernanceModule:
             ],
             "security_limitations": list(dict.fromkeys(limitations)),
             "validation_scope": validation_scope,
+            "acceptance_gates": acceptance_gates,
+            "trigger_scope": static_manifest.get("trigger_scope", {}),
         }
 
     def _manifest(
@@ -174,6 +177,7 @@ class GovernanceModule:
         model_digest: str,
         seed: int,
         ledger: AuditLedger | None,
+        acceptance_gates: dict[str, Any],
         additional_limitations: list[str] | None = None,
     ) -> FinalizedRun:
         staging = stager.staging_dir
@@ -189,6 +193,7 @@ class GovernanceModule:
             assessments=all_assessments,
             static_manifest=coverage_manifest,
             validation_scope=validation_scope,
+            acceptance_gates=acceptance_gates,
             additional_limitations=additional_limitations,
         )
         atomic_write_json(staging / "coverage_statement.json", coverage)

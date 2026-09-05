@@ -14,7 +14,9 @@
     "unsupported_attack_classes": {"$ref": "#/$defs/uniqueStrings"},
     "trust_assumptions": {"$ref": "#/$defs/uniqueStrings"},
     "security_limitations": {"$ref": "#/$defs/uniqueStrings"},
-    "validation_scope": {"type": "object", "additionalProperties": false, "required": ["dataset", "architectures", "sample_sizes", "seeds", "status"], "properties": {"dataset": {"type": "string", "minLength": 1}, "architectures": {"$ref": "#/$defs/uniqueStrings"}, "sample_sizes": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}}, "seeds": {"type": "array", "items": {"type": "integer"}, "uniqueItems": true}, "status": {"type": "string", "enum": ["not_run", "passed", "failed", "partial"]}, "metrics_ref": {"type": ["string", "null"]}}}
+    "validation_scope": {"type": "object", "additionalProperties": false, "required": ["dataset", "architectures", "sample_sizes", "seeds", "status"], "properties": {"dataset": {"type": "string", "minLength": 1}, "architectures": {"$ref": "#/$defs/uniqueStrings"}, "sample_sizes": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}}, "seeds": {"type": "array", "items": {"type": "integer"}, "uniqueItems": true}, "status": {"type": "string", "enum": ["not_run", "passed", "failed", "partial"]}, "metrics_ref": {"type": ["string", "null"]}}},
+    "acceptance_gates": {"type": "object", "additionalProperties": true},
+    "trigger_scope": {"type": "object", "additionalProperties": true}
   },
   "$defs": {"uniqueStrings": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}}
 }

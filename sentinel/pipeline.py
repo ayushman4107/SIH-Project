@@ -173,14 +173,40 @@ class SentinelPipeline:
 
         reference_states: list[dict[str, Any]] = []
         reference_dir = _project_path(config["references"]["model_directory"])
-        for reference_path in sorted(reference_dir.glob("*.pt")) if reference_dir.is_dir() else []:
-            reference_states.append(
-                load_model(
-                    reference_path, "pytorch", model.architecture_id, model.num_classes
-                ).state_dict()
-            )
+        if reference_dir.is_dir():
+            has_subdirs = any(p.is_dir() for p in reference_dir.iterdir())
+            if has_subdirs:
+                import logging
+                logging.warning(f"Reference directory {reference_dir} contains subdirectories. They will be ignored.")
+            for reference_path in sorted(reference_dir.glob("*.pt")):
+                if reference_path.is_file():
+                    reference_states.append(
+                        load_model(
+                            reference_path, "pytorch", model.architecture_id, model.num_classes
+                        ).state_dict()
+                    )
         try:
-            f2 = ModelIntegrityModule().analyze(
+            # Pre-validate references to ensure none are anomalous compared to the rest
+            if len(reference_states) >= 3:
+                # Basic check: verify references against each other
+                from sentinel.modules.model_integrity import normalized_spectra, median_spectra, spectral_score
+                refs_spectra = [normalized_spectra(state) for state in reference_states]
+                loo = []
+                for i, r in enumerate(refs_spectra):
+                    others = refs_spectra[:i] + refs_spectra[i+1:]
+                    s, _ = spectral_score(r, median_spectra(others))
+                    loo.append(s)
+                med = float(np.median(loo))
+                std = float(np.std(loo))
+                # Very simple outlier detection for reference safety
+                if any(s > med + 5.0 * std for s in loo):
+                    import logging
+                    logging.warning("One or more reference models appears anomalous; F2 results may be impacted.")
+                    
+            f2 = ModelIntegrityModule(
+                threshold_mode=config["detectors"]["f2_threshold_mode"],
+                regularized_k=config["detectors"]["f2_regularized_k"]
+            ).analyze(
                 candidate_state=model.state_dict(),
                 reference_states=reference_states,
                 architecture_id=model.architecture_id,
@@ -348,6 +374,14 @@ class SentinelPipeline:
             model_digest=model.digest,
             seed=config["seed"],
             ledger=ledger,
+            acceptance_gates={
+                "f1_label_flip_recall_floor": config["detectors"]["f1_label_flip_recall_floor"],
+                "f1_duplicate_precision_floor": config["detectors"]["f1_duplicate_precision_floor"],
+                "f1_outlier_auc_floor": config["detectors"]["f1_outlier_auc_floor"],
+                "f3_tamper_detection_rate": config["detectors"]["f3_tamper_detection_rate"],
+                "f3_replay_detection_rate": config["detectors"]["f3_replay_detection_rate"],
+                "f3_mutation_detection_rate": config["detectors"]["f3_mutation_detection_rate"],
+            },
             additional_limitations=limitations,
         )
 

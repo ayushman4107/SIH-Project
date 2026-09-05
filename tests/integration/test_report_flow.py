@@ -62,6 +62,7 @@ def test_unsigned_fail_open_finalizes_as_review_without_fake_audit_protection() 
             seed=42,
             ledger=None,
             additional_limitations=["Authenticated logging unavailable in this fixture."],
+            acceptance_gates={},
         )
         assert result.overall_disposition is Disposition.REVIEW
         assert json.loads((result.run_dir / "audit_log.json").read_text()) == []

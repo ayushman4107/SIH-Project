@@ -85,6 +85,35 @@ class ModelIntegrityTests(unittest.TestCase):
         )
         self.assertEqual(result.assessment.findings[0].recommended_disposition.value, "quarantine")
 
+    def test_regularized_threshold_mode(self) -> None:
+        references = [_state(seed) for seed in range(5)]
+        nextafter_result = ModelIntegrityModule(threshold_mode="nextafter").analyze(
+            candidate_state=_state(1),
+            reference_states=references,
+            architecture_id="resnet18",
+            candidate_id="clean",
+        )
+        regularized_result = ModelIntegrityModule(threshold_mode="regularized", regularized_k=2.0).analyze(
+            candidate_state=_state(1),
+            reference_states=references,
+            architecture_id="resnet18",
+            candidate_id="clean",
+        )
+        self.assertGreaterEqual(regularized_result.threshold, nextafter_result.threshold)
+        self.assertIn("mean", regularized_result.calibration_stats)
+        self.assertIn("rule_of_three_upper_bound_fpr", regularized_result.calibration_stats)
 
+    def test_eligible_tensor_criteria_and_margins(self) -> None:
+        references = [_state(seed) for seed in range(5)]
+        result = ModelIntegrityModule().analyze(
+            candidate_state=_state(99, anomalous=True),
+            reference_states=references,
+            architecture_id="resnet18",
+            candidate_id="poisoned",
+        )
+        self.assertIn("target_tensors", result.eligible_tensor_criteria)
+        self.assertIn("poisoned", result.detection_margins)
+        self.assertIsNotNone(result.threshold_margin_min)
+        self.assertGreater(result.detection_margins["poisoned"], 0)
 if __name__ == "__main__":
     unittest.main()

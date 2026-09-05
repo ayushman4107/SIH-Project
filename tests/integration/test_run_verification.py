@@ -47,6 +47,7 @@ def _finalized_run(root: Path) -> Path:
         model_digest=sha256_file(model),
         seed=42,
         ledger=ledger,
+        acceptance_gates={},
     )
     return result.run_dir
 

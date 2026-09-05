@@ -92,6 +92,7 @@ class GovernanceTests(unittest.TestCase):
                 model_digest=sha256_file(model),
                 seed=42,
                 ledger=ledger,
+                acceptance_gates={},
             )
             self.assertEqual(result.overall_disposition, Disposition.ACCEPT)
             self.assertTrue(result.run_dir.is_dir())

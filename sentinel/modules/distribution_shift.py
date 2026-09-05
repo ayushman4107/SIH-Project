@@ -43,6 +43,7 @@ class DistributionShiftResult:
     incoming_entropy: float
     model_dependency: str
     ood_threshold: float
+    ood_pair_difficulty: str = "easy_baseline"
 
 
 class DistributionShiftModule:
@@ -68,6 +69,7 @@ class DistributionShiftModule:
         incoming_logits: np.ndarray,
         incoming_ids: list[str] | None = None,
         model_suspicious: bool = False,
+        ood_pair_difficulty: str = "easy_baseline",
     ) -> DistributionShiftResult:
         reference = np.asarray(reference_embeddings, dtype=np.float64)
         incoming = np.asarray(incoming_embeddings, dtype=np.float64)
@@ -194,4 +196,5 @@ class DistributionShiftModule:
             incoming_entropy,
             dependency,
             threshold,
+            ood_pair_difficulty,
         )

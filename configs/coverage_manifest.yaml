@@ -9,6 +9,7 @@ implemented_checks:
   - authenticated_audit_chain
   - mahalanobis_ood
   - predictive_entropy_ratio
+  - ood_cifar100_secondary
 unsupported_attack_classes:
   - trigger_discovery
   - black_box_fingerprinting
@@ -23,3 +24,21 @@ unsupported_attack_classes:
   - cross_session_replay
   - host_compromise
   - tail_truncation_without_expected_length
+trigger_scope:
+  tested_triggers:
+    - type: "patch_checkerboard"
+      size: "3x3"
+      position: "bottom_right"
+      target_class: 0
+      channels: "all_rgb"
+  untested_trigger_families:
+    - "blended_triggers"
+    - "warped_triggers_wanet"
+    - "randomized_position_triggers"
+    - "randomized_size_triggers"
+    - "clean_label_attacks"
+    - "input_aware_triggers"
+  disclosure: >
+    Detection rates are measured against a single fixed-patch BadNets trigger.
+    Results do not generalize to blended, warped, or adaptive backdoor triggers.
+    This is scoped as a v1 proof-of-concept benchmark.
