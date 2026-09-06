@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 from sklearn.covariance import LedoitWolf
 
 from sentinel.core.enums import Disposition, FindingType, ModuleStatus, Pillar, Severity
-from sentinel.core.models import AssetLocator, Finding, MethodIdentity, ModuleAssessment
+from sentinel.core.models import (
+    AssetLocator,
+    Finding,
+    MethodIdentity,
+    ModuleAssessment,
+    UnavailableMethod,
+)
 from sentinel.core.normalizers import empirical_percentile, low_entropy_confidence
 
 
@@ -70,6 +77,7 @@ class DistributionShiftModule:
         incoming_ids: list[str] | None = None,
         model_suspicious: bool = False,
         ood_pair_difficulty: str = "easy_baseline",
+        projector: Any = None,
     ) -> DistributionShiftResult:
         reference = np.asarray(reference_embeddings, dtype=np.float64)
         incoming = np.asarray(incoming_embeddings, dtype=np.float64)
@@ -119,6 +127,60 @@ class DistributionShiftModule:
                         else Disposition.REVIEW,
                     )
                 )
+
+        # ---------------------------------------------------------
+        # Synthetic Transformation Projector (Secondary Discriminator)
+        # ---------------------------------------------------------
+        projector_executed = False
+        projector_unavailable = None
+        if projector is not None:
+            flagged_indices = [
+                i for i, distance in enumerate(incoming_distances) if distance > threshold
+            ]
+            if flagged_indices:
+                try:
+                    import torch
+                    z_anomalous = torch.tensor(
+                        incoming[flagged_indices], dtype=torch.float32
+                    )
+                    proj_result = projector.evaluate_batch(z_anomalous)
+                    is_orthogonal = proj_result["finding_type"] == "ORTHOGONAL_DRIFT_ANOMALY"
+                    
+                    ftype = (
+                        FindingType.ORTHOGONAL_DRIFT_ANOMALY
+                        if is_orthogonal
+                        else FindingType.NATURAL_COVARIATE_DRIFT
+                    )
+                    
+                    findings.append(
+                        Finding(
+                            finding_type=ftype,
+                            pillar=Pillar.F4,
+                            affected_asset=AssetLocator("inference_batch", "incoming"),
+                            severity=Severity.CRITICAL if is_orthogonal else Severity.MEDIUM,
+                            raw_score=proj_result["orthogonality_ratio"],
+                            decision_threshold=str(projector.ortho_threshold),
+                            confidence=0.95,  # High confidence from manifold projection
+                            confidence_normalizer="fixed_v1",
+                            human_readable_reason=(
+                                "Adversarial orthogonal drift detected."
+                                if is_orthogonal
+                                else "Natural covariate drift detected."
+                            ),
+                            evidence={
+                                "orthogonality_ratio": proj_result["orthogonality_ratio"],
+                                "total_displacement": proj_result["total_displacement"],
+                            },
+                            method=MethodIdentity("synthetic_drift_projector", "1"),
+                            recommended_disposition=(
+                                Disposition.QUARANTINE if is_orthogonal else Disposition.REVIEW
+                            ),
+                        )
+                    )
+                    projector_executed = True
+                except Exception as exc:
+                    projector_unavailable = UnavailableMethod("synthetic_drift_projector", str(exc))
+        # ---------------------------------------------------------
         reference_entropy = float(np.mean(predictive_entropy(reference_logits)))
         incoming_entropy = float(np.mean(predictive_entropy(incoming_logits)))
         ratio = incoming_entropy / max(reference_entropy, self.epsilon)
@@ -182,11 +244,19 @@ class DistributionShiftModule:
             )
         else:
             characterization = "inconclusive"
+        executed_methods = ["ledoit_wolf_mahalanobis", "predictive_entropy_ratio"]
+        if projector_executed:
+            executed_methods.append("synthetic_drift_projector")
+            
+        unavailable_methods = []
+        if projector_unavailable:
+            unavailable_methods.append(projector_unavailable)
+            
         assessment = ModuleAssessment(
-            ModuleStatus.COMPLETED,
+            ModuleStatus.COMPLETED if not unavailable_methods else ModuleStatus.PARTIAL,
             tuple(findings),
-            ("ledoit_wolf_mahalanobis", "predictive_entropy_ratio"),
-            (),
+            tuple(executed_methods),
+            tuple(unavailable_methods),
         )
         return DistributionShiftResult(
             assessment,

@@ -82,3 +82,5 @@ class FindingType(WireEnum):
     ACTIVATION_CLUSTER_ANOMALY = "activation_cluster_anomaly"
     GRADIENT_MISALIGNMENT = "gradient_misalignment"
     INFLUENCE_SYSTEMATIC_MISLABEL = "influence_systematic_mislabel"
+    ORTHOGONAL_DRIFT_ANOMALY = "orthogonal_drift_anomaly"
+    NATURAL_COVARIATE_DRIFT = "natural_covariate_drift"

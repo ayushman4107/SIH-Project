@@ -409,7 +409,6 @@ def main() -> int:
                 args.metadata.parent.mkdir(parents=True, exist_ok=True)
                 
                 # Also record GPU metadata
-                import platform
                 gpu_metadata = {
                     "cuda_device_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "N/A",
                     "cudnn_version": torch.backends.cudnn.version() if torch.cuda.is_available() else "N/A",

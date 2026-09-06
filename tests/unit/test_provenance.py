@@ -34,12 +34,12 @@ class ProvenanceTests(unittest.TestCase):
             )
             self.assertEqual(generated.record["status"], "signed")
             self.assertEqual(
-                module.verify(generated.record, run).verdict, VerificationVerdict.VALID
+                module.verify_chain([generated.record], run)[0].verdict, VerificationVerdict.VALID
             )
             output_path = run / generated.record["output_ref"]
             np.save(output_path, np.array([0.2, 0.8], dtype=np.float32), allow_pickle=False)
             self.assertEqual(
-                module.verify(generated.record, run).verdict, VerificationVerdict.TAMPERED
+                module.verify_chain([generated.record], run)[0].verdict, VerificationVerdict.TAMPERED
             )
 
     def test_missing_key_is_unsigned_and_releases_canonical_output(self) -> None:

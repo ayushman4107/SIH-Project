@@ -1,13 +1,11 @@
-import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import yaml
 
 from sentinel.pipeline import SentinelPipeline
-from sentinel.utils.config import load_config
 
 
 class TestGlobSafety(unittest.TestCase):
@@ -18,7 +16,10 @@ class TestGlobSafety(unittest.TestCase):
             # create config
             config_path = base / "config.yaml"
             config = {
-                "references": {"model_directory": str(base / "refs")},
+                "references": {
+                    "model_directory": str(base / "refs"),
+                    "dataset_manifest": "dummy"
+                },
                 "dataset_manifest": "dummy",
                 "dataset_root": "dummy",
                 "num_classes": 10,
@@ -61,7 +62,7 @@ class TestGlobSafety(unittest.TestCase):
                             with patch("sentinel.pipeline.EmbeddingExtractor"):
                                 try:
                                     SentinelPipeline().run(config_path)
-                                except Exception as e:
+                                except Exception:
                                     import traceback
                                     traceback.print_exc()
                                     pass

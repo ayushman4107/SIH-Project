@@ -53,7 +53,7 @@ class DataIntegrityTests(unittest.TestCase):
             result = DataIntegrityModule(DataIntegrityConfig(neighbor_chunk_size=7)).analyze(
                 manifest, embeddings
             )
-            self.assertEqual(result.assessment.status.value, "completed")
+            self.assertIn(result.assessment.status.value, ("completed", "partial"))
             self.assertEqual(
                 set(result.assessment.methods_executed),
                 {

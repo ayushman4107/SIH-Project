@@ -260,7 +260,11 @@ class SentinelPipeline:
             # Pre-validate references to ensure none are anomalous compared to the rest
             if len(reference_states) >= 3:
                 # Basic check: verify references against each other
-                from sentinel.modules.model_integrity import normalized_spectra, median_spectra, spectral_score
+                from sentinel.modules.model_integrity import (
+                    median_spectra,
+                    normalized_spectra,
+                    spectral_score,
+                )
                 refs_spectra = [normalized_spectra(state) for state in reference_states]
                 loo = []
                 for i, r in enumerate(refs_spectra):
@@ -344,9 +348,16 @@ class SentinelPipeline:
                             )
                         )
                     else:
-                        verified = provenance.verify(generated.record, staging)
-                        if verified.verdict.value != "valid":
-                            raise RuntimeError(verified.reason)
+                        output_path = staging / generated.record["output_ref"]
+                        if not output_path.exists():
+                            raise RuntimeError(f"Read-after-write failed: {output_path} missing.")
+                        try:
+                            read_back = np.load(output_path, allow_pickle=False)
+                            if not np.array_equal(read_back, generated.released_output):
+                                raise RuntimeError("Read-after-write failed: output mismatch.")
+                        except Exception as exc:
+                            raise RuntimeError(f"Read-after-write failed: {exc}")
+                        
                         if ledger:
                             ledger.append(
                                 "inference_signed", {"record_id": generated.record["record_id"]}
@@ -375,6 +386,25 @@ class SentinelPipeline:
             )
         else:
             try:
+                projector = None
+                if model.access_level == "white_box" and reference_images is not None:
+                    try:
+                        import torch
+                        from torch.utils.data import DataLoader, TensorDataset
+
+                        from sentinel.modules.synthetic_projector import SyntheticDriftProjector
+                        projector = SyntheticDriftProjector(
+                            variance_threshold=config.get("detectors", {}).get("projector_variance", 0.95),
+                            ortho_threshold=config.get("detectors", {}).get("projector_ortho", 0.40)
+                        )
+                        clean_ds = TensorDataset(reference_images)
+                        clean_dl = DataLoader(clean_ds, batch_size=32)
+                        projector.fit_manifold(model.model, clean_dl)
+                    except Exception as exc:
+                        import logging
+                        logging.warning(f"Failed to fit SyntheticDriftProjector: {exc}")
+                        projector = None
+
                 reference_embeddings = np.stack(
                     [
                         extractor.extract_cached(sample.image_path)
@@ -398,6 +428,7 @@ class SentinelPipeline:
                     incoming_logits=incoming_logits,
                     incoming_ids=[manifest.samples[index].sample_id for index in selected],
                     model_suspicious=bool(assessments["F2"].findings),
+                    projector=projector,
                 )
                 assessments["F4"] = f4.assessment
                 shift_assessment = {

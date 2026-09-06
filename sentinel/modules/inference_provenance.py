@@ -25,6 +25,7 @@ from sentinel.utils.hashing import (
     sha256_file,
 )
 from sentinel.utils.paths import resolve_within
+from sentinel.utils.ratchet import SecureRatchetKey
 
 GENESIS_HASH = "0" * 64
 
@@ -142,6 +143,15 @@ class InferenceProvenanceModule:
         self.secret_value = (
             secret_value if secret_value is not None else os.environ.get("SENTINEL_SECRET_KEY")
         )
+        try:
+            self.ratchet = SecureRatchetKey(parse_secret_key(self.secret_value))
+        except Exception:
+            self.ratchet = None
+
+    def __del__(self) -> None:
+        # Best effort zeroization if the module is deleted
+        if getattr(self, 'ratchet', None):
+            self.ratchet.zeroize()
 
     def generate(
         self,
@@ -190,64 +200,109 @@ class InferenceProvenanceModule:
             atomic_write_bytes(run_root / input_ref, input_bytes)
             atomic_write_bytes(run_root / config_ref, config_bytes + b"\n")
             atomic_write_bytes(run_root / output_ref, _npy_bytes(released))
-            key = parse_secret_key(self.secret_value)
-            base["binding_hmac"] = binding_hmac(
-                key, input_hash, model_hash, config_hash, output_hash
+            if not self.ratchet:
+                raise ValueError("Ratchet not initialized (invalid or missing secret key)")
+            current_key = self.ratchet.get_key()
+            hmac_hex = binding_hmac(
+                current_key, input_hash, model_hash, config_hash, output_hash
             )
+            base["binding_hmac"] = hmac_hex
+            self.ratchet.ratchet(hmac_hex.encode("utf-8"))
         except Exception as exc:
             base["status"] = ProvenanceStatus.UNSIGNED.value
             base["binding_hmac"] = None
             base["failure_reason"] = f"{type(exc).__name__}: {exc}"
+            if getattr(self, 'ratchet', None):
+                self.ratchet.ratchet(b"UNSIGNED_RECORD")
         return ProvenanceGeneration(base, released)
 
-    def verify(self, record: dict[str, Any], run_root: Path) -> VerificationResult:
-        sequence = (
-            record.get("sequence_number")
-            if isinstance(record.get("sequence_number"), int)
-            else None
-        )
-        if record.get("status") != ProvenanceStatus.SIGNED.value:
-            return VerificationResult(
-                VerificationVerdict.UNAVAILABLE, "record is unsigned", sequence
-            )
+    def verify_chain(self, records: list[dict[str, Any]], run_root: Path) -> list[VerificationResult]:
+        results = []
         try:
-            key = parse_secret_key(self.secret_value)
-            input_path = resolve_within(Path(record["input_ref"]), run_root)
-            config_path = resolve_within(Path(record["config_ref"]), run_root)
-            output_path = resolve_within(Path(record["output_ref"]), run_root)
-            model_path = Path(record["model_path"]).resolve(strict=True)
-            checks = {
-                "input_hash": sha256_file(input_path),
-                "model_hash": sha256_file(model_path),
-                "config_hash": sha256_bytes(
-                    canonical_json_bytes(json.loads(config_path.read_text(encoding="utf-8")))
-                ),
-                "output_hash": sha256_bytes(
-                    canonical_output_bytes(np.load(output_path, allow_pickle=False))
-                ),
-            }
-            for field, actual in checks.items():
-                if not secure_equal(str(record.get(field, "")), actual):
-                    return VerificationResult(
-                        VerificationVerdict.TAMPERED, f"{field} mismatch", sequence
-                    )
-            expected_binding = binding_hmac(
-                key,
-                checks["input_hash"],
-                checks["model_hash"],
-                checks["config_hash"],
-                checks["output_hash"],
-            )
-            if not secure_equal(str(record.get("binding_hmac", "")), expected_binding):
-                return VerificationResult(
-                    VerificationVerdict.TAMPERED, "binding HMAC mismatch", sequence
+            root_key = parse_secret_key(self.secret_value)
+        except Exception as exc:
+            return [
+                VerificationResult(
+                    VerificationVerdict.UNAVAILABLE, f"verification artifact unavailable or invalid: {exc}", None
                 )
-        except (OSError, KeyError, TypeError, ValueError) as exc:
-            return VerificationResult(
-                VerificationVerdict.UNAVAILABLE,
-                f"verification artifact unavailable or invalid: {exc}",
-                sequence,
-            )
-        return VerificationResult(
-            VerificationVerdict.VALID, "component hashes and binding HMAC are valid", sequence
-        )
+            ] * len(records)
+            
+        with SecureRatchetKey(root_key) as ratchet:
+            for record in records:
+                sequence = (
+                    record.get("sequence_number")
+                    if isinstance(record.get("sequence_number"), int)
+                    else None
+                )
+                if record.get("status") != ProvenanceStatus.SIGNED.value:
+                    results.append(
+                        VerificationResult(
+                            VerificationVerdict.UNAVAILABLE, "record is unsigned", sequence
+                        )
+                    )
+                    ratchet.ratchet(b"UNSIGNED_RECORD")
+                    continue
+                try:
+                    current_key = ratchet.get_key()
+                    input_path = resolve_within(Path(record["input_ref"]), run_root)
+                    config_path = resolve_within(Path(record["config_ref"]), run_root)
+                    output_path = resolve_within(Path(record["output_ref"]), run_root)
+                    model_path = Path(record["model_path"]).resolve(strict=True)
+                    checks = {
+                        "input_hash": sha256_file(input_path),
+                        "model_hash": sha256_file(model_path),
+                        "config_hash": sha256_bytes(
+                            canonical_json_bytes(json.loads(config_path.read_text(encoding="utf-8")))
+                        ),
+                        "output_hash": sha256_bytes(
+                            canonical_output_bytes(np.load(output_path, allow_pickle=False))
+                        ),
+                    }
+                    tampered_field = None
+                    for field, actual in checks.items():
+                        if not secure_equal(str(record.get(field, "")), actual):
+                            tampered_field = field
+                            break
+                    
+                    if tampered_field:
+                        results.append(
+                            VerificationResult(
+                                VerificationVerdict.TAMPERED, f"{tampered_field} mismatch", sequence
+                            )
+                        )
+                        hmac_val = record.get("binding_hmac")
+                        ratchet.ratchet(hmac_val.encode("utf-8") if isinstance(hmac_val, str) else b"UNSIGNED_RECORD")
+                        continue
+
+                    expected_binding = binding_hmac(
+                        current_key,
+                        checks["input_hash"],
+                        checks["model_hash"],
+                        checks["config_hash"],
+                        checks["output_hash"],
+                    )
+                    record_hmac = str(record.get("binding_hmac", ""))
+                    if not secure_equal(record_hmac, expected_binding):
+                        results.append(
+                            VerificationResult(
+                                VerificationVerdict.TAMPERED, "binding HMAC mismatch", sequence
+                            )
+                        )
+                    else:
+                        results.append(
+                            VerificationResult(
+                                VerificationVerdict.VALID, "component hashes and binding HMAC are valid", sequence
+                            )
+                        )
+                    ratchet.ratchet(record_hmac.encode("utf-8"))
+                except (OSError, KeyError, TypeError, ValueError) as exc:
+                    results.append(
+                        VerificationResult(
+                            VerificationVerdict.UNAVAILABLE,
+                            f"verification artifact unavailable or invalid: {exc}",
+                            sequence,
+                        )
+                    )
+                    hmac_val = record.get("binding_hmac")
+                    ratchet.ratchet(hmac_val.encode("utf-8") if isinstance(hmac_val, str) else b"UNSIGNED_RECORD")
+        return results
