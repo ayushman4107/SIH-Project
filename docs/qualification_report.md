@@ -1,0 +1,11 @@
+### ⚠️ F2 Model Assurance: Declared Blind Spots & Coverage Limitations
+
+The Sentinel F2 Gray-Box Quantization Probe is a single-pass, deterministic defense mechanism evaluating structural fragility via precision truncation. Reviewers must account for the following limitations:
+
+1. **Dormant Neuron Paradox (Inactive Trojan Pathways):** The probe evaluates candidates against a clean holdout calibration batch. Fully dormant backdoors that execute strictly decoupled pathways—yielding zero interference on clean data—will invisibly survive INT8 truncation.
+2. **Quantization-Aware Training (QAT Evasion):** Adversaries explicitly regularizing their Trojans for wide loss minima (via QAT or redundant weight-encoding) will successfully bypass the divergence threshold.
+3. **Format Gate Constraint (.engine binaries):** If supplied with a hardware-specific binary (e.g., foreign-target TensorRT) where Sentinel cannot natively compile a matched INT8 variant via PyTorch/ONNX, this check gracefully halts and returns `UNAVAILABLE`.
+4. **FPR Compounding via Orthogonal Thresholds:** Candidates are evaluated against three strictly empirical, independent bounds (JSD, Margin-Flip, Weighted Tau). Applying an inclusive logical `OR` across extreme-value bounds exponentially widens the real-world False Positive Rate on highly idiosyncratic, benign models. 
+5. **Sub-Framework Divergence:** The `.onnx` and `.pt` execution branches utilize different backend sub-graph fusions and quantization heuristics (ONNX `QOperator` vs PyTorch FX `torch.ao.quantization`). 
+   * **Governance Consequence:** Disposition outcomes and metrics from the ONNX and PyTorch branches must not be pooled or compared as if drawn from the same detection-strength distribution in any downstream aggregation or reporting layer.
+6. **Code Version Drift (Process Risk):** The cryptographic cache key enforces reproducibility via a hardcoded `METHODOLOGY_VERSION` string. If future updates alter the metric calculations without a corresponding version string bump, the system will silently mix incompatible quantization thresholds. Sentinel recommends asserting AST hashing or mandatory CI checks to enforce version bumps.
