@@ -17,6 +17,7 @@ from sentinel.core.models import (
     UnavailableMethod,
 )
 from sentinel.core.normalizers import threshold_excess_confidence
+from sentinel.modules.activation_clustering import ActivationClusteringDetector
 
 TENSOR_ELIGIBILITY = {
     "target_tensors": "weights only (name ends with 'weight')",
@@ -111,6 +112,9 @@ class ModelIntegrityModule:
         reference_states: list[dict[str, Any]],
         architecture_id: str,
         candidate_id: str,
+        candidate_adapter: Any = None,
+        images_by_class: dict[int, Any] | None = None,
+        sample_ids_by_class: dict[int, list[str]] | None = None,
     ) -> ModelIntegrityResult:
         try:
             candidate = normalized_spectra(candidate_state)
@@ -201,7 +205,9 @@ class ModelIntegrityModule:
                 ModuleAssessment(ModuleStatus.UNAVAILABLE, (), (), (unavailable,)),
                 None, None, {}, (), {}, None, {}, TENSOR_ELIGIBILITY,
             )
-        findings: tuple[Finding, ...] = ()
+        findings: list[Finding] = []
+        executed_methods: list[str] = []
+        unavailable_methods: list[UnavailableMethod] = []
         detection_margins = {}
         threshold_margin_min = None
         
@@ -240,12 +246,67 @@ class ModelIntegrityModule:
                 if confidence >= 0.95
                 else Disposition.REVIEW,
             )
-            findings = (finding,)
+            findings.append(finding)
+            executed_methods.append("weight_spectral_analysis")
         else:
             calibration_stats["missed_model_margin"] = margin
-            
+            executed_methods.append("weight_spectral_analysis")
+
+        if (
+            candidate_adapter is not None
+            and candidate_adapter.access_level == "white_box"
+            and images_by_class is not None
+            and sample_ids_by_class is not None
+        ):
+            try:
+                detector = ActivationClusteringDetector()
+                ac_findings = detector.run(
+                    candidate_adapter.model, images_by_class, sample_ids_by_class
+                )
+                executed_methods.append("activation_clustering")
+                for f in ac_findings:
+                    findings.append(
+                        Finding(
+                            finding_type=FindingType.ACTIVATION_CLUSTER_ANOMALY,
+                            pillar=Pillar.F2,
+                            affected_asset=AssetLocator(
+                                "model", candidate_id, class_id=str(f.class_id)
+                            ),
+                            severity=Severity.CRITICAL
+                            if f.severity == "critical"
+                            else Severity.HIGH,
+                            raw_score=f.silhouette_score,
+                            decision_threshold="silhouette >= 0.55",
+                            confidence=f.confidence,
+                            confidence_normalizer="silhouette_v1",
+                            human_readable_reason=(
+                                "Bimodal activation clustering detected for this class."
+                            ),
+                            evidence={
+                                "layer_name": f.layer_name,
+                                "minority_fraction": f.minority_fraction,
+                                "suspected_sample_indices": f.suspected_sample_indices,
+                            },
+                            method=MethodIdentity("activation_clustering", "1"),
+                            recommended_disposition=Disposition.QUARANTINE,
+                        )
+                    )
+            except Exception as exc:
+                unavailable_methods.append(UnavailableMethod("activation_clustering", str(exc)))
+        else:
+            unavailable_methods.append(
+                UnavailableMethod("activation_clustering", "White-box model and images required")
+            )
+
+        # Elevate confidence if both methods flagged the same class?
+        # In this simplistic integration, they are reported as independent findings.
         assessment = ModuleAssessment(
-            ModuleStatus.COMPLETED, findings, ("weight_spectral_analysis",), ()
+            ModuleStatus.COMPLETED
+            if not unavailable_methods
+            else (ModuleStatus.PARTIAL if executed_methods else ModuleStatus.UNAVAILABLE),
+            tuple(findings),
+            tuple(executed_methods),
+            tuple(unavailable_methods),
         )
         return ModelIntegrityResult(
             assessment, score, threshold, distances, tuple(loo_scores), 

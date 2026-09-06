@@ -24,6 +24,8 @@ from sentinel.core.normalizers import (
     label_quality_confidence,
     phash_confidence,
 )
+from sentinel.modules.gradient_clustering import GradientClusteringDetector
+from sentinel.modules.influence_functions import InfluenceFunctionDetector
 
 
 @dataclass(frozen=True)
@@ -383,7 +385,18 @@ class DataIntegrityModule:
     def __init__(self, config: DataIntegrityConfig | None = None) -> None:
         self.config = config or DataIntegrityConfig()
 
-    def analyze(self, manifest: DatasetManifest, embeddings: np.ndarray) -> DataIntegrityResult:
+    def analyze(
+        self,
+        manifest: DatasetManifest,
+        embeddings: np.ndarray,
+        model_adapter: Any = None,
+        images_by_class: dict[int, Any] | None = None,
+        sample_ids_by_class: dict[int, list[str]] | None = None,
+        train_images: Any = None,
+        train_labels: Any = None,
+        reference_images: Any = None,
+        reference_labels: Any = None,
+    ) -> DataIntegrityResult:
         matrix = np.asarray(embeddings, dtype=np.float64)
         if (
             matrix.ndim != 2
@@ -397,8 +410,87 @@ class DataIntegrityModule:
         affected: set[int] = set()
         executed: list[str] = []
         unavailable: list[UnavailableMethod] = []
+
+        # Run cleanlab first so we can use its flagged items for gradient clustering
+        try:
+            cl_findings, cl_affected = _label_findings(manifest, matrix, self.config)
+            findings.extend(cl_findings)
+            affected.update(cl_affected)
+            executed.append("cleanlab_label_quality")
+        except (ImportError, RuntimeError, ValueError) as exc:
+            unavailable.append(UnavailableMethod("cleanlab_label_quality", str(exc)))
+            cl_affected = set()
+
+        # Run Gradient Clustering on cleanlab-flagged samples
+        if (
+            model_adapter is not None
+            and model_adapter.access_level == "white_box"
+            and images_by_class is not None
+            and sample_ids_by_class is not None
+        ):
+            try:
+                import torch
+
+                # Build subset of images_by_class that only includes cleanlab flagged samples
+                flagged_sample_ids = {manifest.samples[idx].sample_id for idx in cl_affected}
+                flagged_images_by_class = {}
+                flagged_ids_by_class = {}
+                all_class_ids = list(images_by_class.keys())
+                for cls, ids in sample_ids_by_class.items():
+                    imgs = images_by_class[cls]
+                    cls_flagged_imgs = []
+                    cls_flagged_ids = []
+                    for i, sid in enumerate(ids):
+                        if sid in flagged_sample_ids:
+                            cls_flagged_imgs.append(imgs[i])
+                            cls_flagged_ids.append(sid)
+                    if cls_flagged_imgs:
+                        flagged_images_by_class[cls] = torch.stack(cls_flagged_imgs)
+                        flagged_ids_by_class[cls] = cls_flagged_ids
+
+                gc_findings = GradientClusteringDetector().run(
+                    model_adapter.model,
+                    flagged_images_by_class,
+                    flagged_ids_by_class,
+                    all_class_ids,
+                )
+                executed.append("gradient_clustering")
+                for f in gc_findings:
+                    findings.append(
+                        Finding(
+                            finding_type=FindingType.GRADIENT_MISALIGNMENT,
+                            pillar=Pillar.F1,
+                            affected_asset=AssetLocator(
+                                "sample", f.sample_id, class_id=str(f.nominal_class)
+                            ),
+                            severity=Severity.CRITICAL
+                            if f.severity == "critical"
+                            else Severity.HIGH,
+                            raw_score=f.cosine_to_class_centroid,
+                            decision_threshold="MAD > 2.5",
+                            confidence=f.confidence,
+                            confidence_normalizer="gradient_mad_v1",
+                            human_readable_reason=(
+                                "Gradient direction anomalously misaligned with nominal class."
+                            ),
+                            evidence={
+                                "nominal_class": f.nominal_class,
+                                "nearest_alternate_class": f.nearest_alternate_class,
+                                "cosine_to_class_centroid": f.cosine_to_class_centroid,
+                                "cosine_to_alternate_centroid": f.cosine_to_alternate_centroid,
+                            },
+                            method=MethodIdentity("gradient_clustering", "1"),
+                            recommended_disposition=Disposition.QUARANTINE,
+                        )
+                    )
+            except Exception as exc:
+                unavailable.append(UnavailableMethod("gradient_clustering", str(exc)))
+        else:
+            unavailable.append(
+                UnavailableMethod("gradient_clustering", "White-box model and images required")
+            )
+
         for name, operation in (
-            ("cleanlab_label_quality", lambda: _label_findings(manifest, matrix, self.config)),
             ("phash_cosine_duplicates", lambda: _duplicate_findings(manifest, matrix, self.config)),
             ("isolation_forest", lambda: _outlier_findings(manifest, matrix, self.config)),
         ):
@@ -409,6 +501,67 @@ class DataIntegrityModule:
                 executed.append(name)
             except (ImportError, RuntimeError, ValueError) as exc:
                 unavailable.append(UnavailableMethod(name, str(exc)))
+
+        # Run Influence Functions
+        if (
+            model_adapter is not None
+            and model_adapter.access_level == "white_box"
+            and train_images is not None
+            and reference_images is not None
+        ):
+            try:
+                import torch
+
+                train_ids = [s.sample_id for s in manifest.samples]
+                attribute_map = {s.sample_id: s.source_id for s in manifest.samples}
+
+                inf_findings, inf_report = InfluenceFunctionDetector().run(
+                    model_adapter.model,
+                    train_images,
+                    train_labels,
+                    train_ids,
+                    reference_images,
+                    reference_labels,
+                    attribute_map=attribute_map,
+                )
+                executed.append("influence_functions")
+                for f in inf_findings:
+                    findings.append(
+                        Finding(
+                            finding_type=FindingType.INFLUENCE_SYSTEMATIC_MISLABEL,
+                            pillar=Pillar.F1,
+                            affected_asset=AssetLocator("sample", f.sample_id),
+                            severity=Severity.CRITICAL
+                            if f.severity == "critical"
+                            else Severity.HIGH,
+                            raw_score=f.mean_influence_on_validation,
+                            decision_threshold="Bottom 5th percentile of influence",
+                            confidence=f.confidence,
+                            confidence_normalizer="influence_harm_v1",
+                            human_readable_reason=(
+                                "Sample systematically harms validation set performance."
+                            ),
+                            evidence={
+                                "mean_influence_on_validation": f.mean_influence_on_validation,
+                                "fraction_validation_hurt": f.fraction_validation_hurt,
+                                "concentration_report": inf_report
+                                if inf_report.get("systematic_pattern_detected")
+                                else None,
+                            },
+                            method=MethodIdentity("influence_functions", "1"),
+                            recommended_disposition=Disposition.QUARANTINE,
+                        )
+                    )
+            except Exception as exc:
+                unavailable.append(UnavailableMethod("influence_functions", str(exc)))
+        else:
+            unavailable.append(
+                UnavailableMethod(
+                    "influence_functions",
+                    "White-box model, training images, and trusted reference holdout required",
+                )
+            )
+
         try:
             sources, source_findings, _ = _source_assessments(manifest, affected, self.config)
             findings.extend(source_findings)

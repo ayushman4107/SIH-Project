@@ -105,6 +105,35 @@ def _logits(
     return array
 
 
+def _load_images_tensor(manifest: DatasetManifest, model_config: dict[str, Any]) -> Any:
+    import torch
+    from PIL import Image
+
+    transform = _inference_transform(model_config)
+    tensors = []
+    for sample in manifest.samples:
+        with Image.open(sample.image_path) as image:
+            tensors.append(transform(image.convert("RGB")))
+    return torch.stack(tensors)
+
+
+def _build_class_dicts(
+    manifest: DatasetManifest, images: Any
+) -> tuple[dict[int, Any], dict[int, list[str]]]:
+    import torch
+
+    images_by_class = {}
+    sample_ids_by_class = {}
+    for i, sample in enumerate(manifest.samples):
+        cls = sample.label
+        images_by_class.setdefault(cls, []).append(images[i])
+        sample_ids_by_class.setdefault(cls, []).append(sample.sample_id)
+
+    for cls in images_by_class:
+        images_by_class[cls] = torch.stack(images_by_class[cls])
+    return images_by_class, sample_ids_by_class
+
+
 class SentinelPipeline:
     def run(self, config_path: Path) -> FinalizedRun:
         config = load_config(config_path.resolve(strict=True))
@@ -144,6 +173,38 @@ class SentinelPipeline:
         embeddings = np.stack(
             [extractor.extract_cached(sample.image_path) for sample in manifest.samples]
         )
+
+        # Preload reference manifest for Influence Functions (F1) and Distribution Shift (F4)
+        reference_manifest_path = _project_path(config["references"]["dataset_manifest"])
+        reference_manifest = None
+        if reference_manifest_path.is_file():
+            reference_manifest = load_classification_manifest(
+                reference_manifest_path, reference_manifest_path.parent, config["num_classes"]
+            )
+
+        # Load images into tensors for new detectors (if white-box)
+        train_images = None
+        train_labels = None
+        reference_images = None
+        reference_labels = None
+        images_by_class = None
+        sample_ids_by_class = None
+        if model.access_level == "white_box":
+            import torch
+
+            try:
+                train_images = _load_images_tensor(manifest, model_config)
+                train_labels = torch.tensor([s.label for s in manifest.samples], dtype=torch.long)
+                images_by_class, sample_ids_by_class = _build_class_dicts(manifest, train_images)
+                if reference_manifest:
+                    reference_images = _load_images_tensor(reference_manifest, model_config)
+                    reference_labels = torch.tensor(
+                        [s.label for s in reference_manifest.samples], dtype=torch.long
+                    )
+            except Exception as exc:
+                limitations.append(f"Image tensor loading failed: {exc}")
+                train_images = None
+
         assessments: dict[str, ModuleAssessment] = {}
 
         if ledger:
@@ -160,7 +221,17 @@ class SentinelPipeline:
                     source_p_value=config["detectors"]["source_p_value"],
                     source_rate_multiplier=config["detectors"]["source_rate_multiplier"],
                 )
-            ).analyze(manifest, embeddings)
+            ).analyze(
+                manifest,
+                embeddings,
+                model_adapter=model,
+                images_by_class=images_by_class,
+                sample_ids_by_class=sample_ids_by_class,
+                train_images=train_images,
+                train_labels=train_labels,
+                reference_images=reference_images,
+                reference_labels=reference_labels,
+            )
             assessments["F1"] = f1.assessment
             source_assessments = list(f1.source_assessments)
         except Exception as exc:
@@ -211,6 +282,9 @@ class SentinelPipeline:
                 reference_states=reference_states,
                 architecture_id=model.architecture_id,
                 candidate_id=model.digest,
+                candidate_adapter=model,
+                images_by_class=images_by_class,
+                sample_ids_by_class=sample_ids_by_class,
             )
             assessments["F2"] = f2.assessment
         except Exception as exc:
@@ -295,16 +369,12 @@ class SentinelPipeline:
             )
 
         shift_assessment: dict[str, Any] | None = None
-        reference_manifest_path = _project_path(config["references"]["dataset_manifest"])
-        if not reference_manifest_path.is_file() or not selected:
+        if not reference_manifest or not selected:
             assessments["F4"] = _unavailable(
                 "distribution_shift", "reference dataset or incoming inference batch is unavailable"
             )
         else:
             try:
-                reference_manifest = load_classification_manifest(
-                    reference_manifest_path, reference_manifest_path.parent, config["num_classes"]
-                )
                 reference_embeddings = np.stack(
                     [
                         extractor.extract_cached(sample.image_path)

@@ -79,3 +79,6 @@ class FindingType(WireEnum):
     SUSPICIOUS_ENTROPY_SHIFT = "suspicious_entropy_shift"
     ENGINE_ERROR = "engine_error"
     MALFORMED_INPUT = "malformed_input"
+    ACTIVATION_CLUSTER_ANOMALY = "activation_cluster_anomaly"
+    GRADIENT_MISALIGNMENT = "gradient_misalignment"
+    INFLUENCE_SYSTEMATIC_MISLABEL = "influence_systematic_mislabel"
