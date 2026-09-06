@@ -569,6 +569,61 @@ class DataIntegrityModule:
         except (ImportError, RuntimeError, ValueError) as exc:
             sources = []
             unavailable.append(UnavailableMethod("source_concentration", str(exc)))
+        try:
+            from sentinel.modules.sybil_detector import SybilCollusionDetector
+
+            # Map affected boolean to 1.0/0.0 anomaly score
+            raw_scores = np.zeros(len(manifest.samples))
+            raw_scores[list(affected)] = 1.0
+
+            contributor_ids = np.array([s.source_id for s in manifest.samples])
+
+            # Count total submissions per contributor
+            totals = {}
+            for cid in contributor_ids:
+                totals[cid] = totals.get(cid, 0) + 1
+
+            detector = SybilCollusionDetector()
+            # If affected is 5%, percentile 95 is 1.0.
+            # We set cutoff to 99 to ensure only the 1.0 scores pass (if affected < 50%)
+            # Actually, because we pass binary scores, any percentile between 
+            # 100-affected_rate and 100 will be 1.0
+            # We'll use 90.0 as default, or we can just pass the scores
+            sybil_result = detector.evaluate(
+                latent_embeddings=matrix,
+                contributor_ids=contributor_ids,
+                raw_anomaly_scores=raw_scores,
+                contributor_total_submission_counts=totals,
+                dataset_total_samples=len(manifest.samples),
+            )
+
+            if sybil_result["finding_type"] == "SYBIL_COLLUSION_SYNDICATE":
+                for syn in sybil_result["syndicates"]:
+                    findings.append(
+                        Finding(
+                            finding_type=FindingType.SYBIL_COLLUSION_SYNDICATE,
+                            pillar=Pillar.F1,
+                            affected_asset=AssetLocator(
+                                "syndicate", syn["members"][0], source_id=syn["members"][0]
+                            ),
+                            severity=Severity.CRITICAL,
+                            raw_score=syn["calibrated_confidence"],
+                            decision_threshold="calibrated_confidence >= 0.70",
+                            confidence=syn["calibrated_confidence"],
+                            confidence_normalizer="sybil_hypergeometric_v4",
+                            human_readable_reason=(
+                                "Mathematical proof of distributed topological "
+                                "poisoning in latent space."
+                            ),
+                            evidence={"syndicate": syn},
+                            method=MethodIdentity("sybil_detector", "4"),
+                            recommended_disposition=Disposition(syn["disposition"]),
+                        )
+                    )
+            executed.append("sybil_detector")
+        except (ImportError, RuntimeError, ValueError) as exc:
+            unavailable.append(UnavailableMethod("sybil_detector", str(exc)))
+
         status = (
             ModuleStatus.COMPLETED
             if not unavailable

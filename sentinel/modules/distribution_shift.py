@@ -140,18 +140,17 @@ class DistributionShiftModule:
             if flagged_indices:
                 try:
                     import torch
-                    z_anomalous = torch.tensor(
-                        incoming[flagged_indices], dtype=torch.float32
-                    )
+
+                    z_anomalous = torch.tensor(incoming[flagged_indices], dtype=torch.float32)
                     proj_result = projector.evaluate_batch(z_anomalous)
                     is_orthogonal = proj_result["finding_type"] == "ORTHOGONAL_DRIFT_ANOMALY"
-                    
+
                     ftype = (
                         FindingType.ORTHOGONAL_DRIFT_ANOMALY
                         if is_orthogonal
                         else FindingType.NATURAL_COVARIATE_DRIFT
                     )
-                    
+
                     findings.append(
                         Finding(
                             finding_type=ftype,
@@ -247,11 +246,11 @@ class DistributionShiftModule:
         executed_methods = ["ledoit_wolf_mahalanobis", "predictive_entropy_ratio"]
         if projector_executed:
             executed_methods.append("synthetic_drift_projector")
-            
+
         unavailable_methods = []
         if projector_unavailable:
             unavailable_methods.append(projector_unavailable)
-            
+
         assessment = ModuleAssessment(
             ModuleStatus.COMPLETED if not unavailable_methods else ModuleStatus.PARTIAL,
             tuple(findings),

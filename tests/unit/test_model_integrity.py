@@ -93,7 +93,9 @@ class ModelIntegrityTests(unittest.TestCase):
             architecture_id="resnet18",
             candidate_id="clean",
         )
-        regularized_result = ModelIntegrityModule(threshold_mode="regularized", regularized_k=2.0).analyze(
+        regularized_result = ModelIntegrityModule(
+            threshold_mode="regularized", regularized_k=2.0
+        ).analyze(
             candidate_state=_state(1),
             reference_states=references,
             architecture_id="resnet18",
@@ -115,5 +117,7 @@ class ModelIntegrityTests(unittest.TestCase):
         self.assertIn("poisoned", result.detection_margins)
         self.assertIsNotNone(result.threshold_margin_min)
         self.assertGreater(result.detection_margins["poisoned"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()

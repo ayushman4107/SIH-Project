@@ -24,7 +24,7 @@ def main() -> int:
     images.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(args.seed)
     rows = []
-    
+
     if args.ood_dataset == "noise":
         for index in range(args.count):
             name = f"noise_{index:05d}.png"
@@ -43,13 +43,13 @@ def main() -> int:
             from torchvision import datasets
         except ImportError as exc:
             raise RuntimeError("torchvision required to generate real OOD fixtures") from exc
-        
+
         args.data_root.mkdir(parents=True, exist_ok=True)
         if args.ood_dataset == "svhn":
             dataset = datasets.SVHN(args.data_root, split="test", download=False)
         else:
             dataset = datasets.CIFAR100(args.data_root, train=False, download=False)
-            
+
         indices = rng.choice(len(dataset), size=min(args.count, len(dataset)), replace=False)
         for i, idx in enumerate(indices):
             image, label = dataset[idx]
@@ -64,7 +64,7 @@ def main() -> int:
                 }
             )
         manifest_desc = f"{args.ood_dataset} benchmark dataset."
-        
+
     manifest = {
         "dataset_id": f"{args.ood_dataset}-ood-seed-{args.seed}",
         "samples": rows,

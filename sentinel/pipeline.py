@@ -248,7 +248,11 @@ class SentinelPipeline:
             has_subdirs = any(p.is_dir() for p in reference_dir.iterdir())
             if has_subdirs:
                 import logging
-                logging.warning(f"Reference directory {reference_dir} contains subdirectories. They will be ignored.")
+
+                logging.warning(
+                    f"Reference directory {reference_dir} contains subdirectories. "
+                    "They will be ignored."
+                )
             for reference_path in sorted(reference_dir.glob("*.pt")):
                 if reference_path.is_file():
                     reference_states.append(
@@ -265,10 +269,11 @@ class SentinelPipeline:
                     normalized_spectra,
                     spectral_score,
                 )
+
                 refs_spectra = [normalized_spectra(state) for state in reference_states]
                 loo = []
                 for i, r in enumerate(refs_spectra):
-                    others = refs_spectra[:i] + refs_spectra[i+1:]
+                    others = refs_spectra[:i] + refs_spectra[i + 1 :]
                     s, _ = spectral_score(r, median_spectra(others))
                     loo.append(s)
                 med = float(np.median(loo))
@@ -276,11 +281,15 @@ class SentinelPipeline:
                 # Very simple outlier detection for reference safety
                 if any(s > med + 5.0 * std for s in loo):
                     import logging
-                    logging.warning("One or more reference models appears anomalous; F2 results may be impacted.")
-                    
+
+                    logging.warning(
+                        "One or more reference models appears anomalous; "
+                        "F2 results may be impacted."
+                    )
+
             f2 = ModelIntegrityModule(
                 threshold_mode=config["detectors"]["f2_threshold_mode"],
-                regularized_k=config["detectors"]["f2_regularized_k"]
+                regularized_k=config["detectors"]["f2_regularized_k"],
             ).analyze(
                 candidate_state=model.state_dict(),
                 reference_states=reference_states,
@@ -356,8 +365,8 @@ class SentinelPipeline:
                             if not np.array_equal(read_back, generated.released_output):
                                 raise RuntimeError("Read-after-write failed: output mismatch.")
                         except Exception as exc:
-                            raise RuntimeError(f"Read-after-write failed: {exc}")
-                        
+                            raise RuntimeError(f"Read-after-write failed: {exc}") from exc
+
                         if ledger:
                             ledger.append(
                                 "inference_signed", {"record_id": generated.record["record_id"]}
@@ -393,15 +402,21 @@ class SentinelPipeline:
                         from torch.utils.data import DataLoader, TensorDataset
 
                         from sentinel.modules.synthetic_projector import SyntheticDriftProjector
+
                         projector = SyntheticDriftProjector(
-                            variance_threshold=config.get("detectors", {}).get("projector_variance", 0.95),
-                            ortho_threshold=config.get("detectors", {}).get("projector_ortho", 0.40)
+                            variance_threshold=config.get("detectors", {}).get(
+                                "projector_variance", 0.95
+                            ),
+                            ortho_threshold=config.get("detectors", {}).get(
+                                "projector_ortho", 0.40
+                            ),
                         )
                         clean_ds = TensorDataset(reference_images)
                         clean_dl = DataLoader(clean_ds, batch_size=32)
                         projector.fit_manifold(model.model, clean_dl)
                     except Exception as exc:
                         import logging
+
                         logging.warning(f"Failed to fit SyntheticDriftProjector: {exc}")
                         projector = None
 

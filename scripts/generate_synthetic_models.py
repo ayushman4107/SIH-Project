@@ -294,9 +294,18 @@ def main() -> int:
     parser.add_argument("--max-attempts-per-kind", type=int, default=30)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--dry-run", action="store_true", help="emit the frozen benchmark plan")
-    parser.add_argument("--determinism-check", action="store_true", help="verify CUDA determinism before training")
-    parser.add_argument("--time-budget-hours", type=float, default=27.0, help="warn if remaining time is insufficient")
-    parser.add_argument("--verify-data", action="store_true", help="pre-flight check for dataset directory layout")
+    parser.add_argument(
+        "--determinism-check", action="store_true", help="verify CUDA determinism before training"
+    )
+    parser.add_argument(
+        "--time-budget-hours",
+        type=float,
+        default=27.0,
+        help="warn if remaining time is insufficient",
+    )
+    parser.add_argument(
+        "--verify-data", action="store_true", help="pre-flight check for dataset directory layout"
+    )
     args = parser.parse_args()
     if args.dry_run:
         args.metadata.parent.mkdir(parents=True, exist_ok=True)
@@ -309,11 +318,13 @@ def main() -> int:
         if args.device == "auto" and torch.cuda.is_available()
         else ("cpu" if args.device == "auto" else args.device)
     )
-    
+
     if args.verify_data:
         cifar10_dir = args.data_root / "cifar-10-batches-py"
         if not cifar10_dir.is_dir():
-            parser.exit(1, f"Data layout error: {cifar10_dir} not found. Expected torchvision format.\n")
+            parser.exit(
+                1, f"Data layout error: {cifar10_dir} not found. Expected torchvision format.\n"
+            )
         required_files = [f"data_batch_{i}" for i in range(1, 6)] + ["test_batch"]
         for rf in required_files:
             if not (cifar10_dir / rf).is_file():
@@ -322,16 +333,29 @@ def main() -> int:
 
     if args.determinism_check:
         import hashlib
+
         print("Running micro-training determinism check...")
         _seed_everything(42, torch)
         # We assume train_attempt will respect seeds
         t1 = train_attempt(
-            architecture_id="resnet18", model_kind="clean", seed=42, data_root=args.data_root,
-            output_dir=args.output_dir / "micro", device=device, epochs=2, batch_size=128
+            architecture_id="resnet18",
+            model_kind="clean",
+            seed=42,
+            data_root=args.data_root,
+            output_dir=args.output_dir / "micro",
+            device=device,
+            epochs=2,
+            batch_size=128,
         )
         t2 = train_attempt(
-            architecture_id="resnet18", model_kind="clean", seed=42, data_root=args.data_root,
-            output_dir=args.output_dir / "micro", device=device, epochs=2, batch_size=128
+            architecture_id="resnet18",
+            model_kind="clean",
+            seed=42,
+            data_root=args.data_root,
+            output_dir=args.output_dir / "micro",
+            device=device,
+            epochs=2,
+            batch_size=128,
         )
         if t1.artifact and t2.artifact:
             h1 = hashlib.sha256(Path(t1.artifact).read_bytes()).hexdigest()
@@ -341,6 +365,7 @@ def main() -> int:
         print("Determinism check passed.")
     attempts: list[TrainingAttempt] = []
     import time
+
     start_time = time.time()
     for architecture_id, counts in _plan()["architectures"].items():
         for model_kind, required in counts.items():
@@ -350,13 +375,16 @@ def main() -> int:
             consecutive_failures = 0
             while accepted < required and attempted < args.max_attempts_per_kind:
                 attempt_start = time.time()
-                
+
                 # Early exit heuristic
                 if consecutive_failures >= 3:
-                    print(f"Warning: 3 consecutive failures for {architecture_id} {model_kind}. Adjusting learning rate schedule.")
+                    print(
+                        f"Warning: 3 failures for {architecture_id} {model_kind}. "
+                        "Adjusting learning rate schedule."
+                    )
                     # In a real implementation we would adjust the scheduler or hyperparams here.
                     # For now we just log a diagnostic summary.
-                
+
                 result = train_attempt(
                     architecture_id=architecture_id,
                     model_kind=model_kind,
@@ -368,23 +396,26 @@ def main() -> int:
                     batch_size=args.batch_size,
                 )
                 attempt_duration = time.time() - attempt_start
-                
+
                 if not result.accepted:
                     consecutive_failures += 1
                 else:
                     consecutive_failures = 0
-                
+
                 # Estimate remaining
                 avg_time = (time.time() - start_time) / (len(attempts) + 1)
                 remaining_models = required - (accepted + int(result.accepted))
                 # rough estimate ignoring other architectures for simplicity
                 estimated_remaining = remaining_models * avg_time
-                
+
                 elapsed_hours = (time.time() - start_time) / 3600
                 estimated_remaining_hours = estimated_remaining / 3600
                 if elapsed_hours + estimated_remaining_hours > args.time_budget_hours:
-                    print(f"WARNING: Time budget of {args.time_budget_hours}h may be exceeded. Est remaining: {estimated_remaining_hours:.1f}h")
-                
+                    print(
+                        f"WARNING: Time budget of {args.time_budget_hours}h may be exceeded. "
+                        f"Est remaining: {estimated_remaining_hours:.1f}h"
+                    )
+
                 # Create a new dataclass instance with the timing info
                 result = TrainingAttempt(
                     architecture_id=result.architecture_id,
@@ -401,21 +432,25 @@ def main() -> int:
                     estimated_remaining_seconds=estimated_remaining,
                     consecutive_failures=consecutive_failures,
                 )
-                
+
                 attempts.append(result)
                 accepted += int(result.accepted)
                 attempted += 1
                 seed += 1
                 args.metadata.parent.mkdir(parents=True, exist_ok=True)
-                
+
                 # Also record GPU metadata
                 gpu_metadata = {
-                    "cuda_device_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "N/A",
-                    "cudnn_version": torch.backends.cudnn.version() if torch.cuda.is_available() else "N/A",
+                    "cuda_device_name": torch.cuda.get_device_name(0)
+                    if torch.cuda.is_available()
+                    else "N/A",
+                    "cudnn_version": torch.backends.cudnn.version()
+                    if torch.cuda.is_available()
+                    else "N/A",
                     "cublas_workspace_config": os.environ.get("CUBLAS_WORKSPACE_CONFIG", "N/A"),
-                    "torch_deterministic_mode": torch.are_deterministic_algorithms_enabled()
+                    "torch_deterministic_mode": torch.are_deterministic_algorithms_enabled(),
                 }
-                
+
                 out_data = {
                     "plan": _plan(),
                     "device": device,
@@ -423,18 +458,24 @@ def main() -> int:
                     "attempts": [asdict(item) for item in attempts],
                 }
                 args.metadata.write_text(json.dumps(out_data, indent=2), encoding="utf-8")
-                
+
                 # Emit progress JSON
                 progress_file = args.metadata.with_name("benchmark_progress.json")
-                progress_file.write_text(json.dumps({
-                    "total_attempts": len(attempts),
-                    "accepted": accepted,
-                    "required": required,
-                    "current_architecture": architecture_id,
-                    "current_kind": model_kind,
-                    "estimated_remaining_seconds": estimated_remaining
-                }, indent=2), encoding="utf-8")
-                
+                progress_file.write_text(
+                    json.dumps(
+                        {
+                            "total_attempts": len(attempts),
+                            "accepted": accepted,
+                            "required": required,
+                            "current_architecture": architecture_id,
+                            "current_kind": model_kind,
+                            "estimated_remaining_seconds": estimated_remaining,
+                        },
+                        indent=2,
+                    ),
+                    encoding="utf-8",
+                )
+
             if accepted < required:
                 raise RuntimeError(
                     f"Only {accepted}/{required} qualifying {architecture_id} {model_kind} models "

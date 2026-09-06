@@ -12,18 +12,20 @@ class TestGlobSafety(unittest.TestCase):
     def test_pipeline_ignores_subdirectories_for_references(self):
         with tempfile.TemporaryDirectory() as td:
             base = Path(td)
-            
+
             # create config
             config_path = base / "config.yaml"
             config = {
-                "references": {
-                    "model_directory": str(base / "refs"),
-                    "dataset_manifest": "dummy"
-                },
+                "references": {"model_directory": str(base / "refs"), "dataset_manifest": "dummy"},
                 "dataset_manifest": "dummy",
                 "dataset_root": "dummy",
                 "num_classes": 10,
-                "resources": {"max_image_bytes": 100, "max_image_pixels": 100, "embedding_batch_size": 1, "neighbor_chunk_size": 1},
+                "resources": {
+                    "max_image_bytes": 100,
+                    "max_image_pixels": 100,
+                    "embedding_batch_size": 1,
+                    "neighbor_chunk_size": 1,
+                },
                 "seed": 42,
                 "detectors": {
                     "phash_hamming_threshold": 1,
@@ -35,11 +37,11 @@ class TestGlobSafety(unittest.TestCase):
                 },
                 "model": {"path": "dummy", "format": "pytorch", "architecture_id": "resnet18"},
                 "extractor_weights": "dummy",
-                "output_root": str(base / "out")
+                "output_root": str(base / "out"),
             }
             with open(config_path, "w") as f:
                 yaml.dump(config, f)
-            
+
             # create refs and a subfolder with a pt file
             refs_dir = base / "refs"
             refs_dir.mkdir()
@@ -47,11 +49,11 @@ class TestGlobSafety(unittest.TestCase):
             sub_dir = refs_dir / "poisoned"
             sub_dir.mkdir()
             (sub_dir / "bad.pt").write_text("dummy")
-            
+
             # We mock load_config and glob check
-            # Instead of running the full pipeline, we'll just check iterdir behavior 
+            # Instead of running the full pipeline, we'll just check iterdir behavior
             # by looking at the patch that logs a warning
-            
+
             with patch("sentinel.pipeline.load_config", return_value=config):
                 with patch("logging.warning") as mock_warn:
                     with patch("sentinel.pipeline.load_classification_manifest") as mock_lcm:
@@ -64,10 +66,14 @@ class TestGlobSafety(unittest.TestCase):
                                     SentinelPipeline().run(config_path)
                                 except Exception:
                                     import traceback
+
                                     traceback.print_exc()
                                     pass
-            
-            mock_warn.assert_any_call(f"Reference directory {refs_dir} contains subdirectories. They will be ignored.")
+
+            mock_warn.assert_any_call(
+                f"Reference directory {refs_dir} contains subdirectories. They will be ignored."
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

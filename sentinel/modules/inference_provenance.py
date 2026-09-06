@@ -150,7 +150,7 @@ class InferenceProvenanceModule:
 
     def __del__(self) -> None:
         # Best effort zeroization if the module is deleted
-        if getattr(self, 'ratchet', None):
+        if getattr(self, "ratchet", None):
             self.ratchet.zeroize()
 
     def generate(
@@ -203,30 +203,32 @@ class InferenceProvenanceModule:
             if not self.ratchet:
                 raise ValueError("Ratchet not initialized (invalid or missing secret key)")
             current_key = self.ratchet.get_key()
-            hmac_hex = binding_hmac(
-                current_key, input_hash, model_hash, config_hash, output_hash
-            )
+            hmac_hex = binding_hmac(current_key, input_hash, model_hash, config_hash, output_hash)
             base["binding_hmac"] = hmac_hex
             self.ratchet.ratchet(hmac_hex.encode("utf-8"))
         except Exception as exc:
             base["status"] = ProvenanceStatus.UNSIGNED.value
             base["binding_hmac"] = None
             base["failure_reason"] = f"{type(exc).__name__}: {exc}"
-            if getattr(self, 'ratchet', None):
+            if getattr(self, "ratchet", None):
                 self.ratchet.ratchet(b"UNSIGNED_RECORD")
         return ProvenanceGeneration(base, released)
 
-    def verify_chain(self, records: list[dict[str, Any]], run_root: Path) -> list[VerificationResult]:
+    def verify_chain(
+        self, records: list[dict[str, Any]], run_root: Path
+    ) -> list[VerificationResult]:
         results = []
         try:
             root_key = parse_secret_key(self.secret_value)
         except Exception as exc:
             return [
                 VerificationResult(
-                    VerificationVerdict.UNAVAILABLE, f"verification artifact unavailable or invalid: {exc}", None
+                    VerificationVerdict.UNAVAILABLE,
+                    f"verification artifact unavailable or invalid: {exc}",
+                    None,
                 )
             ] * len(records)
-            
+
         with SecureRatchetKey(root_key) as ratchet:
             for record in records:
                 sequence = (
@@ -252,7 +254,9 @@ class InferenceProvenanceModule:
                         "input_hash": sha256_file(input_path),
                         "model_hash": sha256_file(model_path),
                         "config_hash": sha256_bytes(
-                            canonical_json_bytes(json.loads(config_path.read_text(encoding="utf-8")))
+                            canonical_json_bytes(
+                                json.loads(config_path.read_text(encoding="utf-8"))
+                            )
                         ),
                         "output_hash": sha256_bytes(
                             canonical_output_bytes(np.load(output_path, allow_pickle=False))
@@ -263,7 +267,7 @@ class InferenceProvenanceModule:
                         if not secure_equal(str(record.get(field, "")), actual):
                             tampered_field = field
                             break
-                    
+
                     if tampered_field:
                         results.append(
                             VerificationResult(
@@ -271,7 +275,11 @@ class InferenceProvenanceModule:
                             )
                         )
                         hmac_val = record.get("binding_hmac")
-                        ratchet.ratchet(hmac_val.encode("utf-8") if isinstance(hmac_val, str) else b"UNSIGNED_RECORD")
+                        ratchet.ratchet(
+                            hmac_val.encode("utf-8")
+                            if isinstance(hmac_val, str)
+                            else b"UNSIGNED_RECORD"
+                        )
                         continue
 
                     expected_binding = binding_hmac(
@@ -291,7 +299,9 @@ class InferenceProvenanceModule:
                     else:
                         results.append(
                             VerificationResult(
-                                VerificationVerdict.VALID, "component hashes and binding HMAC are valid", sequence
+                                VerificationVerdict.VALID,
+                                "component hashes and binding HMAC are valid",
+                                sequence,
                             )
                         )
                     ratchet.ratchet(record_hmac.encode("utf-8"))
@@ -304,5 +314,9 @@ class InferenceProvenanceModule:
                         )
                     )
                     hmac_val = record.get("binding_hmac")
-                    ratchet.ratchet(hmac_val.encode("utf-8") if isinstance(hmac_val, str) else b"UNSIGNED_RECORD")
+                    ratchet.ratchet(
+                        hmac_val.encode("utf-8")
+                        if isinstance(hmac_val, str)
+                        else b"UNSIGNED_RECORD"
+                    )
         return results

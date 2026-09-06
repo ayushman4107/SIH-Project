@@ -25,6 +25,7 @@ TENSOR_ELIGIBILITY = {
     "reshaping": "4D tensors are reshaped to 2D by flattening dimensions 1-3",
 }
 
+
 def _as_numpy(tensor: Any) -> np.ndarray:
     value = tensor
     if hasattr(value, "detach"):
@@ -105,6 +106,7 @@ class ModelIntegrityModule:
     def __init__(self, threshold_mode: str = "nextafter", regularized_k: float = 2.0):
         self.threshold_mode = threshold_mode
         self.regularized_k = regularized_k
+
     def analyze(
         self,
         *,
@@ -138,12 +140,26 @@ class ModelIntegrityModule:
                     ModuleAssessment(
                         ModuleStatus.COMPLETED, (finding,), ("weight_spectral_analysis",), ()
                     ),
-                    None, None, {}, (), {}, None, {}, TENSOR_ELIGIBILITY,
+                    None,
+                    None,
+                    {},
+                    (),
+                    {},
+                    None,
+                    {},
+                    TENSOR_ELIGIBILITY,
                 )
             unavailable = UnavailableMethod("weight_spectral_analysis", str(exc))
             return ModelIntegrityResult(
                 ModuleAssessment(ModuleStatus.UNAVAILABLE, (), (), (unavailable,)),
-                None, None, {}, (), {}, None, {}, TENSOR_ELIGIBILITY,
+                None,
+                None,
+                {},
+                (),
+                {},
+                None,
+                {},
+                TENSOR_ELIGIBILITY,
             )
         if len(reference_states) < 2:
             unavailable = UnavailableMethod(
@@ -152,7 +168,14 @@ class ModelIntegrityModule:
             )
             return ModelIntegrityResult(
                 ModuleAssessment(ModuleStatus.UNAVAILABLE, (), (), (unavailable,)),
-                None, None, {}, (), {}, None, {}, TENSOR_ELIGIBILITY,
+                None,
+                None,
+                {},
+                (),
+                {},
+                None,
+                {},
+                TENSOR_ELIGIBILITY,
             )
         try:
             candidate_shapes = {
@@ -176,46 +199,58 @@ class ModelIntegrityModule:
                 others = references[:index] + references[index + 1 :]
                 score, _ = spectral_score(reference, median_spectra(others))
                 loo_scores.append(score)
-            
+
             mu = float(np.mean(loo_scores))
             sigma = float(np.std(loo_scores))
             n_refs = len(loo_scores)
-            
+
             if self.threshold_mode == "regularized":
                 threshold = mu + self.regularized_k * sigma
             else:
                 threshold = float(np.nextafter(max(loo_scores), np.inf))
-                
+
             score, distances = spectral_score(candidate, median_spectra(references))
-            
+
             calibration_stats = {
                 "mean": mu,
                 "std": sigma,
                 "n": n_refs,
-                "rule_of_three_upper_bound_fpr": 1.0 - (0.05 ** (1.0 / n_refs)) if n_refs > 0 else 1.0,
+                "rule_of_three_upper_bound_fpr": 1.0 - (0.05 ** (1.0 / n_refs))
+                if n_refs > 0
+                else 1.0,
                 "calibration_sample_size": n_refs,
-                "calibration_confidence_note": f"Detection rate estimated from {n_refs} trials; not statistically powered for high precision.",
+                "calibration_confidence_note": (
+                    f"Detection rate estimated from {n_refs} trials; "
+                    "not statistically powered for high precision."
+                ),
                 "fpr_95ci_upper": 1.0 - (0.05 ** (1.0 / n_refs)) if n_refs > 0 else 1.0,
-                "threshold_method": self.threshold_mode
+                "threshold_method": self.threshold_mode,
             }
-            
+
         except ValueError as exc:
             unavailable = UnavailableMethod("weight_spectral_analysis", str(exc))
             return ModelIntegrityResult(
                 ModuleAssessment(ModuleStatus.UNAVAILABLE, (), (), (unavailable,)),
-                None, None, {}, (), {}, None, {}, TENSOR_ELIGIBILITY,
+                None,
+                None,
+                {},
+                (),
+                {},
+                None,
+                {},
+                TENSOR_ELIGIBILITY,
             )
         findings: list[Finding] = []
         executed_methods: list[str] = []
         unavailable_methods: list[UnavailableMethod] = []
         detection_margins = {}
         threshold_margin_min = None
-        
+
         margin = score - threshold
         if score > threshold:
             detection_margins[candidate_id] = margin
             threshold_margin_min = margin
-            
+
             confidence = threshold_excess_confidence(score, threshold)
             worst_layer = max(distances, key=distances.get)
             finding = Finding(
@@ -309,6 +344,13 @@ class ModelIntegrityModule:
             tuple(unavailable_methods),
         )
         return ModelIntegrityResult(
-            assessment, score, threshold, distances, tuple(loo_scores), 
-            detection_margins, threshold_margin_min, calibration_stats, TENSOR_ELIGIBILITY
+            assessment,
+            score,
+            threshold,
+            distances,
+            tuple(loo_scores),
+            detection_margins,
+            threshold_margin_min,
+            calibration_stats,
+            TENSOR_ELIGIBILITY,
         )
