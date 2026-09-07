@@ -1,0 +1,183 @@
+{
+  "ledger_metadata": {
+    "report_id": "550e8400-e29b-41d4-a716-446655440000",
+    "ledger_id": "ledger_8f3a2c1d",
+    "created": "2024-10-15T10:30:00Z",
+    "entry_count": 5,
+    "chain_status": "valid",
+    "hmac_scheme": "hmac_sha256",
+    "secret_key_required": "SENTINEL_SECRET_KEY"
+  },
+  "ledger": [
+    {
+      "sequence": 1,
+      "timestamp": "2024-10-15T10:30:00Z",
+      "action": "dataset_integrity_scan_f1",
+      "status": "completed",
+      "duration_seconds": 12.3,
+      "samples_processed": 10000,
+      "findings_count": 32,
+      "entry_payload_hash": "sha256:abc123def456ghi789jkl012mno345pqr678stu",
+      "entry_hash": "sha256:0fa567890123456789abcdef0123456789abcdef",
+      "previous_entry_hash": null,
+      "hmac_sha256": "hmac:7f8a9bcd1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b"
+    },
+    {
+      "sequence": 2,
+      "timestamp": "2024-10-15T10:30:15Z",
+      "action": "model_integrity_assessment_f2",
+      "status": "completed",
+      "duration_seconds": 8.1,
+      "model_layers_analyzed": 58,
+      "anomalies_detected": 0,
+      "confidence": 0.72,
+      "entry_payload_hash": "sha256:fedcba987654321zyxwvutsrqponmlkjihgfedcb",
+      "entry_hash": "sha256:1gb678901234567890abcdef1234567890abcdef",
+      "previous_entry_hash": "sha256:0fa567890123456789abcdef0123456789abcdef",
+      "hmac_sha256": "hmac:8g9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z"
+    },
+    {
+      "sequence": 3,
+      "timestamp": "2024-10-15T10:30:25Z",
+      "action": "inference_provenance_binding_f3",
+      "status": "completed",
+      "duration_seconds": 5.2,
+      "inference_records_bound": 2,
+      "bindings_verified": 2,
+      "tampering_detected": false,
+      "entry_payload_hash": "sha256:112233445566778899aabbccddeeff0011223344",
+      "entry_hash": "sha256:2hc789012345678901abcdef2345678901abcdef",
+      "previous_entry_hash": "sha256:1gb678901234567890abcdef1234567890abcdef",
+      "hmac_sha256": "hmac:9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a"
+    },
+    {
+      "sequence": 4,
+      "timestamp": "2024-10-15T10:30:32Z",
+      "action": "distribution_shift_assessment_f4",
+      "status": "completed",
+      "duration_seconds": 14.7,
+      "samples_analyzed": 10000,
+      "outliers_detected": 820,
+      "ood_score": 0.61,
+      "entry_payload_hash": "sha256:ddeeff00112233445566778899aabbccddeeff00",
+      "entry_hash": "sha256:3id890123456789012bcdef3456789012bcdef01",
+      "previous_entry_hash": "sha256:2hc789012345678901abcdef2345678901abcdef",
+      "hmac_sha256": "hmac:0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a9b"
+    },
+    {
+      "sequence": 5,
+      "timestamp": "2024-10-15T10:30:45Z",
+      "action": "report_aggregation_and_finalization_f5",
+      "status": "completed",
+      "duration_seconds": 2.1,
+      "disposition": "review",
+      "policy_exceptions_applied": 0,
+      "entry_payload_hash": "sha256:99aabbccddeeff0011223344556677889900aabb",
+      "entry_hash": "sha256:4je901234567890123cdef4567890123cdef012",
+      "previous_entry_hash": "sha256:3id890123456789012bcdef3456789012bcdef01",
+      "hmac_sha256": "hmac:1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a9b0c"
+    }
+  ],
+  "chain_verification": {
+    "total_entries": 5,
+    "links": [
+      {
+        "from_sequence": 1,
+        "to_sequence": 2,
+        "stored_previous_hash": "sha256:0fa567890123456789abcdef0123456789abcdef",
+        "computed_entry_hash": "sha256:0fa567890123456789abcdef0123456789abcdef",
+        "match": true,
+        "status": "valid"
+      },
+      {
+        "from_sequence": 2,
+        "to_sequence": 3,
+        "stored_previous_hash": "sha256:1gb678901234567890abcdef1234567890abcdef",
+        "computed_entry_hash": "sha256:1gb678901234567890abcdef1234567890abcdef",
+        "match": true,
+        "status": "valid"
+      },
+      {
+        "from_sequence": 3,
+        "to_sequence": 4,
+        "stored_previous_hash": "sha256:2hc789012345678901abcdef2345678901abcdef",
+        "computed_entry_hash": "sha256:2hc789012345678901abcdef2345678901abcdef",
+        "match": true,
+        "status": "valid"
+      },
+      {
+        "from_sequence": 4,
+        "to_sequence": 5,
+        "stored_previous_hash": "sha256:3id890123456789012bcdef3456789012bcdef01",
+        "computed_entry_hash": "sha256:3id890123456789012bcdef3456789012bcdef01",
+        "match": true,
+        "status": "valid"
+      }
+    ],
+    "tampering_checks": {
+      "missing_entries": false,
+      "reordered_entries": false,
+      "modified_hashes": false,
+      "broken_chain": false,
+      "overall_status": "clean"
+    }
+  },
+  "hmac_verification": {
+    "scheme": "hmac_sha256",
+    "entries_verified": 5,
+    "entries_unsigned": 0,
+    "verification_results": [
+      {
+        "sequence": 1,
+        "stored_hmac": "hmac:7f8a9bcd1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
+        "recomputed_hmac": "hmac:7f8a9bcd1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
+        "match": true,
+        "status": "valid"
+      },
+      {
+        "sequence": 2,
+        "stored_hmac": "hmac:8g9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z",
+        "recomputed_hmac": "hmac:8g9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z",
+        "match": true,
+        "status": "valid"
+      },
+      {
+        "sequence": 3,
+        "stored_hmac": "hmac:9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a",
+        "recomputed_hmac": "hmac:9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a",
+        "match": true,
+        "status": "valid"
+      },
+      {
+        "sequence": 4,
+        "stored_hmac": "hmac:0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a9b",
+        "recomputed_hmac": "hmac:0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a9b",
+        "match": true,
+        "status": "valid"
+      },
+      {
+        "sequence": 5,
+        "stored_hmac": "hmac:1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a9b0c",
+        "recomputed_hmac": "hmac:1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a9b0c",
+        "match": true,
+        "status": "valid"
+      }
+    ],
+    "fail_open_detected": false,
+    "unsigned_entries": []
+  },
+  "root_hash": {
+    "final_entry_hash": "sha256:4je901234567890123cdef4567890123cdef012",
+    "ledger_root": "sha256:4je901234567890123cdef4567890123cdef012",
+    "manifest_digest": "sha256:manifest_root_digest_computed_from_entries"
+  },
+  "verification_summary": {
+    "status": "verified",
+    "message": "All 5 ledger entries present, sequenced correctly, hash chain intact, and HMAC signatures valid. No tampering detected.",
+    "timestamp_verified": "2024-10-15T10:30:45Z",
+    "verified_against_key": "SENTINEL_SECRET_KEY hash: sha256:key_hash_not_stored",
+    "tail_truncation_check": "UNSUPPORTED without independently retained expected ledger length",
+    "independent_ledger_length_provided": false,
+    "tail_truncation_risk": "Cannot detect if entries 6+ were deleted after finalization without external reference."
+  }
+}
