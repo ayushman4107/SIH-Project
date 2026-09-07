@@ -1,0 +1,621 @@
+{
+  "report_metadata": {
+    "report_id": "550e8400-e29b-41d4-a716-446655440000",
+    "timestamp": "2024-10-15T10:30:45Z",
+    "phase": "phase_2_baseline",
+    "dataset_id": "cifar10_mixed_svhn_5pct",
+    "model_name": "resnet18_cifar10.pt",
+    "model_format": "pytorch_state_dict",
+    "preprocessing": {
+      "image_size": [32, 32],
+      "normalize_mean": [0.4914, 0.4822, 0.4465],
+      "normalize_std": [0.2023, 0.1994, 0.2010]
+    }
+  },
+  "disposition": {
+    "overall": "review",
+    "reasoning": "F1 contains high-severity findings (label errors, near-duplicate clusters, and a suspected contributor syndicate). F2 spectral analysis below threshold; activation clustering reveals a suspicious bimodal split in class 3. F3 ledger authenticated with HKDF ratchet. F4 shows moderate OOD shift; synthetic projector indicates partial orthogonal displacement. Recommend manual dataset inspection and contributor audit before training."
+  },
+  "pillars": {
+    "F1_data_integrity": {
+      "status": "findings_detected",
+      "total_findings": 35,
+      "summary": {
+        "label_errors": {
+          "count": 14,
+          "severity": "high",
+          "method": "cleanlab_confident_learning",
+          "confidence_range": [0.80, 0.95]
+        },
+        "near_duplicates": {
+          "count": 12,
+          "severity": "high",
+          "method": "phash_cosine_similarity",
+          "confidence_range": [0.90, 0.98]
+        },
+        "statistical_outliers": {
+          "count": 6,
+          "severity": "medium",
+          "method": "isolation_forest",
+          "confidence_range": [0.70, 0.85]
+        }
+      },
+      "sybil_collusion": {
+        "finding_type": "SYBIL_COLLUSION_SYNDICATE",
+        "used_uniform_prior": false,
+        "syndicates": [
+          {
+            "members": ["contributor_B", "contributor_C"],
+            "internal_edge_density": 1.0,
+            "calibrated_confidence": 0.9712,
+            "disposition": "QUARANTINE"
+          }
+        ]
+      },
+      "influence_functions": {
+        "status": "completed",
+        "method": "grad_dot_product_influence",
+        "top_suspects": [
+          { "sample_id": "sample_1187", "influence_score": 0.934, "source_id": "contributor_B" },
+          { "sample_id": "sample_0042", "influence_score": 0.881, "source_id": "contributor_B" },
+          { "sample_id": "sample_0031", "influence_score": 0.867, "source_id": "contributor_C" },
+          { "sample_id": "sample_7722", "influence_score": 0.812, "source_id": "contributor_C" },
+          { "sample_id": "sample_5402", "influence_score": 0.754, "source_id": "contributor_A" }
+        ]
+      },
+      "contributor_risk_aggregation": [
+        {
+          "source_id": "contributor_A",
+          "batches": ["batch_001", "batch_002"],
+          "samples_contributed": 1200,
+          "problematic_samples": 18,
+          "risk_score": 0.78,
+          "recommendation": "review"
+        },
+        {
+          "source_id": "contributor_B",
+          "batches": ["batch_001"],
+          "samples_contributed": 800,
+          "problematic_samples": 22,
+          "risk_score": 0.92,
+          "recommendation": "quarantine"
+        },
+        {
+          "source_id": "contributor_C",
+          "batches": ["batch_003"],
+          "samples_contributed": 650,
+          "problematic_samples": 19,
+          "risk_score": 0.89,
+          "recommendation": "quarantine"
+        }
+      ],
+      "sample_findings": [
+        {
+          "finding_id": "F1_0001",
+          "type": "label_error_cleanlab",
+          "sample_id": "sample_1187",
+          "source_id": "contributor_B",
+          "batch_id": "batch_001",
+          "severity": "high",
+          "confidence": 0.88,
+          "evidence": {
+            "method": "cleanlab_confident_learning",
+            "assigned_label": 1,
+            "assigned_label_name": "automobile",
+            "predicted_label": 8,
+            "predicted_label_name": "truck",
+            "label_quality_score": 0.12,
+            "threshold": 0.30,
+            "description": "Model predicts 'truck' (class 8) with high confidence; sample labeled as 'automobile' (class 1). Label quality score 0.12 falls well below threshold 0.30."
+          },
+          "disposition": "review",
+          "recommended_action": "Manual relabel verification"
+        },
+        {
+          "finding_id": "F1_0002",
+          "type": "duplicate_cluster_phash",
+          "sample_ids": ["sample_0042", "sample_0031"],
+          "source_id": "contributor_A",
+          "batch_ids": ["batch_002", "batch_001"],
+          "severity": "high",
+          "confidence": 0.94,
+          "evidence": {
+            "method": "phash_cosine_similarity",
+            "similarity_score": 0.9876,
+            "threshold": 0.90,
+            "phash_1": "a3f5c2e8d1b4a7c9e2f5b8d1a4c7e0f3",
+            "phash_2": "a3f5c2e8d1b4a7c9e2f5b8d1a4c7e0f3",
+            "hamming_distance": 0,
+            "description": "pHash values identical; Hamming distance 0. Cosine similarity 0.9876 significantly exceeds threshold 0.90. High-confidence duplicate."
+          },
+          "disposition": "quarantine",
+          "recommended_action": "Remove one copy before training; retain metadata."
+        },
+        {
+          "finding_id": "F1_0003",
+          "type": "outlier_isolation_forest",
+          "sample_id": "sample_5402",
+          "source_id": "contributor_A",
+          "batch_id": "batch_001",
+          "severity": "medium",
+          "confidence": 0.74,
+          "evidence": {
+            "method": "isolation_forest",
+            "anomaly_score": 0.81,
+            "threshold": 0.70,
+            "description": "Sample exhibits unusual pixel distribution in RGB color space. Isolated in 5 of 10 forest trees. Anomaly score 0.81 > threshold 0.70."
+          },
+          "disposition": "review",
+          "recommended_action": "Visual inspection recommended; likely out-of-distribution content (noise, extreme lighting, or non-standard capture)"
+        },
+        {
+          "finding_id": "F1_0004",
+          "type": "sybil_collusion",
+          "sample_ids": ["sample_1187", "sample_0042", "sample_7722"],
+          "source_id": "contributor_B",
+          "batch_id": "batch_001",
+          "severity": "high",
+          "confidence": 0.9712,
+          "evidence": {
+            "method": "sybil_marginal_excess_permutation",
+            "syndicate_members": ["contributor_B", "contributor_C"],
+            "internal_edge_density": 1.0,
+            "description": "Contributors B and C exhibit statistically significant co-location in 3 anomalous latent-space clusters. Permutation test p=0.002 (BH-adjusted). High-density syndicate graph suggests coordinated poisoning."
+          },
+          "disposition": "quarantine",
+          "recommended_action": "Quarantine all samples from contributor_B and contributor_C pending forensic audit."
+        }
+      ]
+    },
+    "F2_model_integrity": {
+      "status": "assessment_complete",
+      "access_level": "white_box",
+      "confidence": 0.72,
+      "assessment": "below_threshold",
+      "interpretation": "Spectral signatures within clean bounds, but activation clustering reveals a bimodal activation split in class 3 (silhouette=0.61), consistent with a targeted backdoor. Gradient clustering corroborates a suspicious cluster in class 3.",
+      "method": "spectral_analysis_svd_wasserstein",
+      "findings": [
+        {
+          "finding_id": "F2_0001",
+          "type": "activation_cluster_backdoor",
+          "severity": "high",
+          "confidence": 0.61,
+          "description": "Bimodal activation split detected in class 3 at avgpool layer. Minority cluster contains 12% of samples."
+        }
+      ],
+      "evidence": {
+        "architecture_match": true,
+        "architecture_name": "ResNet-18",
+        "parameter_count_clean_reference": 11689512,
+        "parameter_count_submitted": 11689512,
+        "per_layer_analysis": [
+          {
+            "layer_name": "conv1",
+            "spectral_signature_clean_svd_singular_values": [45.2, 12.1, 8.3, 5.1, 2.8],
+            "spectral_signature_submitted_svd_singular_values": [44.8, 12.3, 8.1, 5.2, 2.9],
+            "wasserstein_distance": 0.23,
+            "threshold": 1.50,
+            "status": "normal"
+          },
+          {
+            "layer_name": "layer1.0.conv1",
+            "spectral_signature_clean_svd_singular_values": [23.4, 6.8, 4.2, 2.1],
+            "spectral_signature_submitted_svd_singular_values": [23.1, 6.9, 4.1, 2.0],
+            "wasserstein_distance": 0.15,
+            "threshold": 1.50,
+            "status": "normal"
+          },
+          {
+            "layer_name": "layer2.0.conv1",
+            "spectral_signature_clean_svd_singular_values": [31.2, 9.4, 5.8, 3.1],
+            "spectral_signature_submitted_svd_singular_values": [30.9, 9.6, 5.9, 3.2],
+            "wasserstein_distance": 0.19,
+            "threshold": 1.50,
+            "status": "normal"
+          },
+          {
+            "layer_name": "layer3.0.conv1",
+            "spectral_signature_clean_svd_singular_values": [18.7, 5.2, 3.1, 1.8],
+            "spectral_signature_submitted_svd_singular_values": [18.5, 5.4, 3.3, 1.9],
+            "wasserstein_distance": 0.31,
+            "threshold": 1.50,
+            "status": "normal"
+          },
+          {
+            "layer_name": "layer4.0.conv1",
+            "spectral_signature_clean_svd_singular_values": [12.3, 3.8, 2.1, 1.2],
+            "spectral_signature_submitted_svd_singular_values": [12.1, 3.9, 2.2, 1.3],
+            "wasserstein_distance": 0.42,
+            "threshold": 1.50,
+            "status": "normal"
+          }
+        ],
+        "leave_one_out_calibration": {
+          "accuracy_on_clean_reference": 0.968,
+          "accuracy_on_submitted_model": 0.965,
+          "delta": 0.003,
+          "threshold": 0.050,
+          "status": "normal"
+        },
+        "nextafter_max_clean_threshold": {
+          "computed_clean_max_spectra": 45.2,
+          "submitted_max_spectra": 44.8,
+          "nextafter_boundary": 45.200000000000003,
+          "submitted_is_below": true,
+          "status": "normal"
+        },
+        "activation_clustering": {
+          "status": "completed",
+          "layer_name": "avgpool",
+          "findings": [
+            {
+              "class_id": 3,
+              "layer_name": "avgpool",
+              "silhouette_score": 0.61,
+              "minority_fraction": 0.12,
+              "suspected_sample_count": 14,
+              "severity": "high",
+              "confidence": 0.61
+            }
+          ],
+          "classes_analyzed": 10,
+          "clean_classes": 9,
+          "suspicious_classes": [3]
+        },
+        "gradient_clustering": {
+          "status": "completed",
+          "method": "gradient_signature_kmeans",
+          "findings": [
+            {
+              "class_id": 3,
+              "layer_name": "fc",
+              "cluster_separation_score": 0.58,
+              "minority_fraction": 0.11,
+              "suspected_sample_count": 13,
+              "severity": "high",
+              "confidence": 0.58
+            }
+          ],
+          "classes_analyzed": 10,
+          "clean_classes": 9,
+          "suspicious_classes": [3]
+        },
+        "influence_functions": {
+          "status": "completed",
+          "method": "grad_dot_product_influence",
+          "top_suspects": [
+            { "sample_id": "sample_1187", "influence_score": 0.934, "source_id": "contributor_B", "class_id": 3 },
+            { "sample_id": "sample_0042", "influence_score": 0.881, "source_id": "contributor_B", "class_id": 3 },
+            { "sample_id": "sample_7722", "influence_score": 0.812, "source_id": "contributor_C", "class_id": 3 },
+            { "sample_id": "sample_5402", "influence_score": 0.754, "source_id": "contributor_A", "class_id": 1 },
+            { "sample_id": "sample_0031", "influence_score": 0.731, "source_id": "contributor_C", "class_id": 3 }
+          ]
+        }
+      },
+      "limitations": "Confidence 0.72 based on synthetic NIST TrojAI backdoors with fixed 3×3 checkerboard trigger. May not generalize to adversarial-in-the-wild model substitutions or trigger patterns not in training corpus."
+    },
+    "F3_inference_provenance": {
+      "status": "authenticated",
+      "binding_type": "input_model_config_output_sha256_hmac",
+      "hmac_status": "valid",
+      "fail_open": false,
+      "ratchet_scheme": {
+        "algorithm": "HKDF-SHA256",
+        "description": "Per-entry HMAC key ratcheting with VirtualLock page-locked memory on Windows",
+        "page_locked": true,
+        "secure_zeroization": true,
+        "forward_secrecy": true,
+        "ratchet_version": "sentinel-ratchet-v1"
+      },
+      "inference_records": [
+        {
+          "inference_id": "inf_001",
+          "sample_id": "sample_0001",
+          "timestamp": "2024-10-15T10:15:00Z",
+          "input_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "model_digest": "sha256:d4a1c0e2f8b3a9c5e7d2f1a3b8c0e5f7",
+          "preprocessing_config_digest": "sha256:a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+          "predicted_label": 3,
+          "confidence": 0.94,
+          "output_sha256": "sha256:9e107d9d372bb6826bd81d3542a419d6",
+          "binding_hmac": "hmac_sha256:7f8a9bcd1e2f3a4b5c6d7e8f9a0b1c2d",
+          "verified": true
+        },
+        {
+          "inference_id": "inf_002",
+          "sample_id": "sample_0002",
+          "timestamp": "2024-10-15T10:15:01Z",
+          "input_sha256": "sha256:6ca13d52ca70c883e0672a94a8e7cc74",
+          "model_digest": "sha256:d4a1c0e2f8b3a9c5e7d2f1a3b8c0e5f7",
+          "preprocessing_config_digest": "sha256:a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+          "predicted_label": 5,
+          "confidence": 0.87,
+          "output_sha256": "sha256:0b4e2c1b98f8d3e6a2c5f7a9e1d4b6c8",
+          "binding_hmac": "hmac_sha256:8g9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v",
+          "verified": true
+        }
+      ],
+      "audit_ledger_entries": 5,
+      "ledger_status": "chained",
+      "tampering_detection": {
+        "missing_entries": false,
+        "reordered_entries": false,
+        "modified_digests": false,
+        "altered_hmacs": false
+      },
+      "tail_truncation_check": "unsupported_without_independent_ledger_length"
+    },
+    "F4_distribution_shift": {
+      "status": "assessment_complete",
+      "ood_score": 0.61,
+      "method": "ledoit_wolf_mahalanobis_distance",
+      "interpretation": "moderate_suspected_drift",
+      "threshold": 0.50,
+      "explanation": "OOD score 0.61 exceeds threshold 0.50, indicating moderate deviation from reference distribution. Entropy ratio and Mahalanobis distance suggest operational drift (e.g., seasonal, sensor, illumination change) rather than deliberate manipulation, but evidence is inconclusive.",
+      "evidence": {
+        "reference_distribution": "CIFAR-10 standard test set",
+        "submitted_sample_count": 10000,
+        "mahalanobis_distances": {
+          "mean": 2.1,
+          "median": 1.8,
+          "95th_percentile": 4.2,
+          "reference_mean": 1.2,
+          "reference_95th_percentile": 2.8
+        },
+        "predictive_entropy_ratio": {
+          "reference_entropy": 1.23,
+          "submitted_entropy": 1.51,
+          "ratio": 1.23,
+          "interpretation": "submitted model slightly more uncertain on submitted samples, consistent with distribution shift"
+        },
+        "outlier_percentage": 8.2,
+        "outlier_threshold": "mahalanobis > 3.0",
+        "samples_flagged": 820,
+        "synthetic_projector": {
+          "status": "completed",
+          "finding_type": "ORTHOGONAL_DRIFT_ANOMALY",
+          "orthogonality_ratio": 0.47,
+          "total_displacement": 3.81,
+          "disposition": "REVIEW",
+          "manifold_basis_components": 8,
+          "variance_threshold": 0.95,
+          "ortho_threshold": 0.40,
+          "interpretation": "Orthogonality ratio 0.47 exceeds threshold 0.40. The submitted batch drifts partially in directions orthogonal to natural physical perturbations (illumination, blur, noise). This is consistent with synthetic or adversarial manipulation, though not definitively conclusive."
+        }
+      },
+      "disposition": "review",
+      "recommendation": "Investigate whether shift is expected operational drift (lighting, sensor, seasonal) or deliberate contamination. Synthetic projector flags partial orthogonal anomaly — consider adversarial subsets or trigger-conditional shift.",
+      "limitations": ["Mahalanobis assumes Gaussian reference distribution. ROC AUC 0.61 on CIFAR-10 vs SVHN indicates 39% inconclusive rate on true distribution shifts.", "Synthetic projector requires white-box access to fit the natural drift manifold."]
+    },
+    "F5_aggregation_and_governance": {
+      "aggregation_rule": "maximum_severity_across_F1_to_F4",
+      "pillar_dispositions": [
+        {
+          "pillar": "F1",
+          "severity": "high",
+          "count": 35,
+          "disposition": "review"
+        },
+        {
+          "pillar": "F2",
+          "severity": "high",
+          "count": 1,
+          "disposition": "review"
+        },
+        {
+          "pillar": "F3",
+          "severity": "none",
+          "count": 0,
+          "disposition": "accept"
+        },
+        {
+          "pillar": "F4",
+          "severity": "medium",
+          "count": 820,
+          "disposition": "inconclusive"
+        }
+      ],
+      "maximum_severity": "high",
+      "aggregated_disposition": "review",
+      "policy_exceptions": [],
+      "analyst_summary": "Dataset contains high-confidence label errors (14 findings), near-duplicate clusters (12 findings), statistical outliers (6 findings), and a suspected contributor syndicate (contributors B+C). Model shows activation bimodality in class 3, corroborated by gradient clustering — consistent with a targeted backdoor. Inference provenance is authenticated with HKDF ratchet. Distribution shift is moderate with partial orthogonal anomaly from the synthetic projector. Recommended disposition: REVIEW — manual inspection of flagged samples, contributor audit of B and C, and class-3 trigger investigation strongly advised before deployment."
+    }
+  },
+  "canonical_findings": {
+    "total_count": 35,
+    "by_type": {
+      "label_error": 14,
+      "duplicate": 12,
+      "outlier": 6,
+      "sybil_collusion": 1,
+      "activation_cluster_backdoor": 1,
+      "model_anomaly": 0,
+      "inference_tampering": 0
+    },
+    "by_severity": {
+      "high": 28,
+      "medium": 6,
+      "low": 0,
+      "critical": 1
+    },
+    "by_disposition": {
+      "accept": 0,
+      "review": 21,
+      "quarantine": 13,
+      "inconclusive": 1
+    }
+  },
+  "coverage_statement": {
+    "framework": "Sentinel Phase 2",
+    "version": "1.0.0",
+    "generated": "2024-10-15T10:30:45Z",
+    "supported_attacks": [
+      {
+        "attack_class": "label_flipping_random",
+        "method": "cleanlab_confident_learning",
+        "confidence_range_min": 0.85,
+        "confidence_range_max": 0.95,
+        "tested_on_dataset": "CIFAR-10",
+        "tested_poison_ratio": 0.10,
+        "validation_folds": 5,
+        "evidence": "5-fold cross-validation on CIFAR-10 with 10% random label flips"
+      },
+      {
+        "attack_class": "label_flipping_systematic",
+        "method": "cleanlab_batch_aggregation",
+        "confidence_range_min": 0.80,
+        "confidence_range_max": 0.90,
+        "tested_on_dataset": "CIFAR-10",
+        "tested_poison_ratio": 0.10,
+        "validation_folds": 5,
+        "evidence": "Correlated label errors (e.g., all 'cat' labeled as 'dog')"
+      },
+      {
+        "attack_class": "near_duplicate_flooding",
+        "method": "phash_cosine_similarity",
+        "confidence_range_min": 0.90,
+        "confidence_range_max": 0.98,
+        "tested_on_dataset": "CIFAR-10",
+        "tested_poison_ratio": 0.05,
+        "validation_folds": 1,
+        "evidence": "5% duplication rate; pHash identical or near-identical matches"
+      },
+      {
+        "attack_class": "statistical_outliers",
+        "method": "isolation_forest",
+        "confidence_range_min": 0.70,
+        "confidence_range_max": 0.85,
+        "tested_on_dataset": "CIFAR-10 vs SVHN OOD",
+        "tested_poison_ratio": 0.05,
+        "validation_folds": 1,
+        "evidence": "5% OOD insertion (SVHN into CIFAR-10)"
+      },
+      {
+        "attack_class": "distributed_sybil_poisoning",
+        "method": "marginal_excess_binomial_gate_permutation_test",
+        "confidence_range_min": 0.90,
+        "confidence_range_max": 0.99,
+        "tested_on_dataset": "CIFAR-10",
+        "tested_poison_ratio": 0.05,
+        "validation_folds": 1,
+        "evidence": "Two-stage Benjamini-Hochberg corrected binomial + permutation test on contributor cluster co-location"
+      },
+      {
+        "attack_class": "targeted_backdoor_activation",
+        "method": "ica_kmeans_silhouette_activation_clustering",
+        "confidence_range_min": 0.55,
+        "confidence_range_max": 0.90,
+        "tested_on_dataset": "NIST TrojAI",
+        "tested_poison_ratio": 0.10,
+        "validation_folds": 1,
+        "evidence": "Penultimate layer activation bimodality on white-box ResNet-18 with checkerboard trigger"
+      },
+      {
+        "attack_class": "targeted_backdoor_gradient",
+        "method": "gradient_signature_kmeans",
+        "confidence_range_min": 0.50,
+        "confidence_range_max": 0.85,
+        "tested_on_dataset": "NIST TrojAI",
+        "tested_poison_ratio": 0.10,
+        "validation_folds": 1,
+        "evidence": "Gradient signature clustering on fc layer complements activation clustering"
+      },
+      {
+        "attack_class": "model_weight_tampering_spectral",
+        "method": "spectral_analysis_svd_wasserstein",
+        "confidence_range_min": 0.65,
+        "confidence_range_max": 0.80,
+        "tested_on_dataset": "NIST TrojAI",
+        "tested_poison_ratio": 0.10,
+        "validation_folds": 1,
+        "evidence": "5 clean ResNet-18 vs 5 NIST TrojAI synthetic backdoor models"
+      },
+      {
+        "attack_class": "inference_replay_detection",
+        "method": "hmac_sha256_ledger_chaining",
+        "confidence_range_min": 1.0,
+        "confidence_range_max": 1.0,
+        "tested_on_dataset": "Synthetic mutation tests",
+        "tested_poison_ratio": 0.0,
+        "validation_folds": 1,
+        "evidence": "All tampering scenarios detected with 100% accuracy"
+      },
+      {
+        "attack_class": "distribution_shift_ood",
+        "method": "ledoit_wolf_mahalanobis",
+        "confidence_range_min": 0.50,
+        "confidence_range_max": 0.72,
+        "tested_on_dataset": "CIFAR-10 vs SVHN",
+        "tested_poison_ratio": 0.05,
+        "validation_folds": 1,
+        "evidence": "ROC AUC 0.61 indicates 39% inconclusive rate; recommended for flagging but not definitive classification"
+      },
+      {
+        "attack_class": "synthetic_adversarial_drift",
+        "method": "svd_natural_drift_manifold_projector",
+        "confidence_range_min": 0.60,
+        "confidence_range_max": 0.85,
+        "tested_on_dataset": "CIFAR-10",
+        "tested_poison_ratio": 0.05,
+        "validation_folds": 1,
+        "evidence": "Orthogonality ratio discriminates natural physics drift from adversarial manipulation"
+      }
+    ],
+    "unsupported_attacks": [
+      {
+        "attack_class": "black_box_fingerprinting",
+        "reason": "Research-stage methods (ADFP, UAPFinger) not mature enough. Deferred."
+      },
+      {
+        "attack_class": "physical_adversarial_robustness",
+        "reason": "Requires domain-specific knowledge (e.g., autonomous vehicle patches). Out of scope."
+      },
+      {
+        "attack_class": "object_detection_model_integrity",
+        "reason": "CleanLab and spectral methods not validated for object detection. Classification models only."
+      }
+    ],
+    "assumptions": [
+      "White-box model access; F2 activation/gradient clustering unavailable if only black-box access granted",
+      "Reference training distribution available for F4 comparisons",
+      "Offline operation; no cloud APIs or model hubs",
+      "Synthetic backdoors follow NIST TrojAI specifications (fixed 3×3 checkerboard, target class 0)",
+      "Secret key remains confidential (F3 HMAC + HKDF ratchet security assumption)",
+      "Host operator is trusted; no assumptions about submitted dataset/model integrity",
+      "Windows environment required for VirtualLock page-locked key storage in F3"
+    ],
+    "known_limitations": [
+      "CleanLab not validated for object detection; classification models only",
+      "F2 spectral signatures 65–75% accuracy on NIST TrojAI; varies by poisoning technique",
+      "Activation and gradient clustering require white-box access and sufficient per-class sample counts (≥20)",
+      "Sybil detector requires ≥2 contributors with ≥5 samples per cluster; single-contributor datasets not testable",
+      "Mahalanobis assumes Gaussian reference distribution; may fail on multi-modal or heavy-tailed data",
+      "F4 distribution-shift has 40–50% inconclusive rate; ROC AUC 0.61 on CIFAR-10 vs SVHN",
+      "Synthetic projector cannot distinguish natural-but-unusual drift from adversarial attacks without domain context",
+      "Tail-truncation of audit ledger undetectable without independently retained expected ledger length",
+      "Fail-open (UNSIGNED) state visible but unverifiable for integrity; analyst must assume compromise"
+    ]
+  },
+  "manifest": {
+    "dataset_id": "cifar10_mixed_svhn_5pct",
+    "dataset_sample_count": 10000,
+    "dataset_hash": "sha256:abc123def456ghi789jkl012mno345pqr678stu",
+    "model_id": "resnet18_cifar10.pt",
+    "model_hash": "sha256:fedcba987654321zyxwvutsrqponmlkjihgfedcba",
+    "model_parameter_count": 11689512,
+    "config_hash": "sha256:112233445566778899aabbccddeeff0011223344",
+    "reference_clean_model_hash": "sha256:aabbccddeeff0011223344556677889900aabbcc",
+    "reference_poisoned_model_hash": "sha256:11223344556677889900aabbccddeeff00112233",
+    "reference_dataset_hash": "sha256:ddeeff00112233445566778899aabbccddeeff00",
+    "runtime_seconds": 47.3,
+    "process_hash": "sha256:99aabbccddeeff0011223344556677889900aabb",
+    "report_finalized": true,
+    "report_write_once_verified": true
+  },
+  "metadata": {
+    "schema_version": "draft_2020_12",
+    "generated_by": "sentinel_phase_2_baseline",
+    "verifier_command": "python scripts/verify_run.py --run-dir output/runs/550e8400-e29b-41d4-a716-446655440000",
+    "verification_key_required": "SENTINEL_SECRET_KEY"
+  }
+}
