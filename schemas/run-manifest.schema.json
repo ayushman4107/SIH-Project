@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.local/schemas/run-manifest.schema.json",
+  "title": "SentinelRunManifest",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "report_id", "created_at", "artifacts"],
+  "properties": {
+    "schema_version": {"const": "1.0"}, "report_id": {"type": "string", "format": "uuid"}, "created_at": {"type": "string", "format": "date-time"},
+    "artifacts": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["artifact_id", "role", "storage", "path", "sha256", "size_bytes", "media_type", "created_at"], "properties": {
+      "artifact_id": {"type": "string", "format": "uuid"}, "role": {"type": "string", "enum": ["input", "model", "config", "output", "report", "coverage", "cache"]}, "storage": {"type": "string", "enum": ["copied", "external"]}, "path": {"type": "string", "minLength": 1}, "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "size_bytes": {"type": "integer", "minimum": 0}, "media_type": {"type": "string", "minLength": 1}, "created_at": {"type": "string", "format": "date-time"}
+    }, "allOf": [{"if": {"properties": {"storage": {"const": "external"}}, "required": ["storage"]}, "then": {"properties": {"role": {"const": "model"}}}}]}}
+  }
+}

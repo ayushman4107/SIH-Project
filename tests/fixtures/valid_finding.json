@@ -1,0 +1,16 @@
+{
+  "finding_id": "0a6504d9-0b55-4f6f-b2ca-9d3e0137842b",
+  "finding_type": "label_error",
+  "pillar": "F1",
+  "affected_asset": {"asset_type": "sample", "asset_id": "sample-1"},
+  "severity": "medium",
+  "raw_score": 0.1,
+  "decision_threshold": 0.7,
+  "confidence": 0.9,
+  "confidence_normalizer": "cleanlab_inverse_quality_v1",
+  "calibration_status": "uncalibrated",
+  "human_readable_reason": "Label quality is inconsistent with out-of-fold predictions.",
+  "evidence": {"provided_label": 2, "suggested_label": 7},
+  "method": {"name": "cleanlab_label_quality", "version": "1"},
+  "recommended_disposition": "review"
+}

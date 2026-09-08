@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.local/schemas/inference-provenance.schema.json",
+  "title": "SentinelInferenceProvenanceRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["record_id", "sequence_number", "timestamp", "status", "input_ref", "input_hash", "model_path", "model_hash", "config_ref", "config_hash", "output_ref", "output_hash", "output_contract", "binding_hmac"],
+  "properties": {
+    "record_id": {"type": "string", "format": "uuid"},
+    "sequence_number": {"type": "integer", "minimum": 1},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "status": {"type": "string", "enum": ["signed", "unsigned"]},
+    "input_ref": {"$ref": "#/$defs/relativePath"},
+    "input_hash": {"$ref": "#/$defs/sha256"},
+    "model_path": {"type": "string", "minLength": 1},
+    "model_hash": {"$ref": "#/$defs/sha256"},
+    "config_ref": {"$ref": "#/$defs/relativePath"},
+    "config_hash": {"$ref": "#/$defs/sha256"},
+    "output_ref": {"$ref": "#/$defs/relativePath"},
+    "output_hash": {"$ref": "#/$defs/sha256"},
+    "output_contract": {
+      "type": "object", "additionalProperties": false,
+      "required": ["dtype", "byte_order", "layout", "shape"],
+      "properties": {
+        "dtype": {"const": "float32"}, "byte_order": {"const": "little"}, "layout": {"const": "C"},
+        "shape": {"type": "array", "minItems": 1, "maxItems": 1, "items": {"type": "integer", "minimum": 1}}
+      }
+    },
+    "binding_hmac": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "failure_reason": {"type": ["string", "null"]}
+  },
+  "allOf": [{
+    "if": {"properties": {"status": {"const": "signed"}}, "required": ["status"]},
+    "then": {"properties": {"binding_hmac": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}},
+    "else": {"properties": {"binding_hmac": {"type": "null"}}, "required": ["failure_reason"]}
+  }],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "relativePath": {"type": "string", "pattern": "^(?![A-Za-z]:)(?![/\\\\])(?!.*(?:^|[/\\\\])\\.\\.(?:[/\\\\]|$)).+$"}
+  }
+}

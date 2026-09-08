@@ -1,0 +1,21 @@
+schema_version: "1.0"
+seed: 42
+platform: windows-x86_64
+task_type: classification
+num_classes: 10
+dataset_manifest: data/dataset.json
+dataset_root: data/images
+model:
+  path: models/candidate.pt
+  format: pytorch
+  architecture_id: resnet18
+  access_level: white_box
+  input_size: [32, 32]
+  mean: [0.4914, 0.4822, 0.4465]
+  std: [0.2470, 0.2435, 0.2616]
+references:
+  model_directory: reference_models/resnet18
+  dataset_manifest: reference_data/reference.json
+extractor_weights: reference_models/resnet18_imagenet_weights.pt
+inference_sample_ids: []
+output_root: output
