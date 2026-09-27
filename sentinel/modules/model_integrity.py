@@ -18,6 +18,12 @@ from sentinel.core.models import (
 )
 from sentinel.core.normalizers import threshold_excess_confidence
 from sentinel.modules.activation_clustering import ActivationClusteringDetector
+from sentinel.modules.quantization_probe.contracts import QuantizationAssessment, Stage2AResult, Stage2BResult
+from sentinel.modules.quantization_probe.feasibility_gate import check_stage_2a
+from sentinel.modules.quantization_probe.onnx_probe import ONNXQuantizationProbe, run_stage_2b
+from sentinel.modules.quantization_probe.pytorch_probe import PyTorchQuantizationProbe
+import hashlib
+import json
 
 TENSOR_ELIGIBILITY = {
     "target_tensors": "weights only (name ends with 'weight')",
@@ -117,6 +123,10 @@ class ModelIntegrityModule:
         candidate_adapter: Any = None,
         images_by_class: dict[int, Any] | None = None,
         sample_ids_by_class: dict[int, list[str]] | None = None,
+        calib_loader: Any = None,
+        eval_loader: Any = None,
+        reference_adapters: list[Any] | None = None,
+        config: dict | None = None,
     ) -> ModelIntegrityResult:
         try:
             candidate = normalized_spectra(candidate_state)
@@ -335,6 +345,37 @@ class ModelIntegrityModule:
 
         # Elevate confidence if both methods flagged the same class?
         # In this simplistic integration, they are reported as independent findings.
+        
+        quant_assessment = None
+        if candidate_adapter and reference_adapters and hasattr(candidate_adapter, "path") and hasattr(candidate_adapter, "format"):
+            stage_2a = check_stage_2a(str(candidate_adapter.path), candidate_adapter.format, reference_adapters[0].format)
+            
+            if not stage_2a.available:
+                quant_assessment = QuantizationAssessment(stage_2a=stage_2a, stage_2b=None)
+            else:
+                if calib_loader and eval_loader:
+                    probe = ONNXQuantizationProbe() if candidate_adapter.format == "onnx" else PyTorchQuantizationProbe()
+                    reference_paths = [str(r.path) for r in reference_adapters]
+                    try:
+                        thresholds, cache_key = probe.fit_references(reference_paths, calib_loader, eval_loader)
+                        stage_2b = run_stage_2b(probe, str(candidate_adapter.path), thresholds, calib_loader, eval_loader, cache_key)
+                        
+                        preprocessing_digest = None
+                        if config:
+                            preprocessing_digest = hashlib.sha256(json.dumps(config.get("model", {}), sort_keys=True).encode()).hexdigest()
+                            
+                        quant_assessment = QuantizationAssessment(
+                            stage_2a=stage_2a,
+                            stage_2b=stage_2b,
+                            admitted_model_digest=candidate_adapter.digest,
+                            admitted_preprocessing_digest=preprocessing_digest
+                        )
+                    except NotImplementedError:
+                        # PyTorch stub
+                        quant_assessment = QuantizationAssessment(stage_2a=stage_2a, stage_2b=None)
+                else:
+                    quant_assessment = QuantizationAssessment(stage_2a=stage_2a, stage_2b=None)
+
         assessment = ModuleAssessment(
             ModuleStatus.COMPLETED
             if not unavailable_methods
@@ -342,6 +383,7 @@ class ModelIntegrityModule:
             tuple(findings),
             tuple(executed_methods),
             tuple(unavailable_methods),
+            quantization=quant_assessment
         )
         return ModelIntegrityResult(
             assessment,

@@ -95,6 +95,7 @@ class ModuleAssessment:
     findings: tuple[Finding, ...] = ()
     methods_executed: tuple[str, ...] = ()
     methods_unavailable: tuple[UnavailableMethod, ...] = ()
+    quantization: Any | None = None
 
     def to_report_dict(self) -> dict[str, Any]:
         return {
@@ -112,6 +113,12 @@ class DatasetSample:
     label: int
     source_id: str = "unknown"
     batch_id: str | None = None
+
+
+@dataclass(frozen=True)
+class RunContext:
+    admitted_model_digest: str | None = None
+    admitted_preprocessing_digest: str | None = None
 
 
 @dataclass(frozen=True)

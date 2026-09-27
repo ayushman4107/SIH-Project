@@ -111,7 +111,7 @@ class GovernanceModule:
         }
 
     def _manifest(
-        self, staging: Path, report_id: str, model_path: Path, model_digest: str
+        self, staging: Path, report_id: str, model_path: Path, model_digest: str, deployed_model: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         artifacts: list[dict[str, Any]] = []
         for path in sorted(item for item in staging.rglob("*") if item.is_file()):
@@ -128,6 +128,8 @@ class GovernanceModule:
                 role = "config"
             elif relative.startswith("artifacts/outputs/"):
                 role = "output"
+            elif relative.startswith("artifacts/spectral_masks/"):
+                role = "spectral_mask"
             else:
                 role = "cache"
             artifacts.append(
@@ -156,12 +158,15 @@ class GovernanceModule:
                 "created_at": utc_now(),
             }
         )
-        return {
+        manifest = {
             "schema_version": "1.0",
             "report_id": report_id,
             "created_at": utc_now(),
             "artifacts": artifacts,
         }
+        if deployed_model:
+            manifest["deployed_model"] = deployed_model
+        return manifest
 
     def finalize(
         self,
@@ -242,7 +247,35 @@ class GovernanceModule:
                 {"report_sha256": sha256_file(staging / "assurance_report.json")},
             )
         atomic_write_json(staging / "audit_log.json", ledger.entries if ledger else [])
-        manifest = self._manifest(staging, report_id, model_path, model_digest)
+        
+        deployed_model = None
+        if "F2" in all_assessments and getattr(all_assessments["F2"], "quantization", None):
+            quant_assessment = all_assessments["F2"].quantization
+            admission_source = "F2_PINNED" if quant_assessment.admitted_model_digest else "INDEPENDENTLY_DERIVED"
+            model_id = quant_assessment.admitted_model_digest or model_digest
+
+            stage_2a_dict = {
+                "available": quant_assessment.stage_2a.available,
+                "reason": quant_assessment.stage_2a.reason.value,
+                "candidate_format": quant_assessment.stage_2a.candidate_format,
+            }
+            deployed_model = {
+                "model_id": model_id,
+                "admission_source": admission_source,
+                "stage_2a": stage_2a_dict,
+            }
+            if quant_assessment.stage_2b:
+                deployed_model["stage_2b"] = {
+                    "status": quant_assessment.stage_2b.status.value,
+                    "mean_jsd": quant_assessment.stage_2b.mean_jsd,
+                    "margin_weighted_flip_rate": quant_assessment.stage_2b.margin_weighted_flip_rate,
+                    "mean_weighted_tau": quant_assessment.stage_2b.mean_weighted_tau,
+                    "degenerate_samples": quant_assessment.stage_2b.degenerate_samples,
+                    "probe_version": quant_assessment.stage_2b.probe_version,
+                    "calibration_cache_key": quant_assessment.stage_2b.calibration_cache_key,
+                }
+                
+        manifest = self._manifest(staging, report_id, model_path, model_digest, deployed_model=deployed_model)
         atomic_write_json(staging / "run_manifest.json", manifest)
         if ledger is not None:
             ledger.append(
