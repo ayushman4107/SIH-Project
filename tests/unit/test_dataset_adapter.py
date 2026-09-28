@@ -7,8 +7,8 @@ from pathlib import Path
 
 from PIL import Image
 
-from sentinel.adapters.datasets import load_classification_manifest
-from sentinel.core.errors import ValidationError
+from visiops.adapters.datasets import load_classification_manifest
+from visiops.core.errors import ValidationError
 
 
 class DatasetAdapterTests(unittest.TestCase):

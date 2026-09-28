@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sentinel.local/schemas/inference-provenance.schema.json",
-  "title": "SentinelInferenceProvenanceRecord",
+  "$id": "https://visiops.local/schemas/inference-provenance.schema.json",
+  "title": "VisiopsInferenceProvenanceRecord",
   "type": "object",
   "additionalProperties": false,
   "required": ["record_id", "sequence_number", "timestamp", "status", "input_ref", "input_hash", "model_path", "model_hash", "config_ref", "config_hash", "output_ref", "output_hash", "output_contract", "binding_hmac"],

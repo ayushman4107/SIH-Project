@@ -3,8 +3,8 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from sentinel.adapters.models import load_model
-from sentinel.core.errors import CapabilityDeferredError, ValidationError
+from visiops.adapters.models import load_model
+from visiops.core.errors import CapabilityDeferredError, ValidationError
 
 
 class ModelAdapterTests(unittest.TestCase):

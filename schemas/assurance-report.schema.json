@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sentinel.local/schemas/assurance-report.schema.json",
-  "title": "SentinelAssuranceReport",
+  "$id": "https://visiops.local/schemas/assurance-report.schema.json",
+  "title": "VisiopsAssuranceReport",
   "type": "object", "additionalProperties": false,
   "required": ["schema_version", "report_id", "run_timestamp", "framework_version", "execution", "assets", "module_assessments", "findings", "overall_disposition", "disposition_trace", "coverage_statement_ref", "audit_log_ref", "run_manifest_ref"],
   "properties": {
@@ -9,7 +9,7 @@
     "execution": {"type": "object", "additionalProperties": false, "required": ["offline", "platform", "python_version", "seed", "run_status"], "properties": {"offline": {"const": true}, "platform": {"const": "windows-x86_64"}, "python_version": {"type": "string"}, "seed": {"type": "integer"}, "run_status": {"const": "completed"}, "started_at": {"type": "string", "format": "date-time"}, "completed_at": {"type": "string", "format": "date-time"}}},
     "assets": {"type": "object"},
     "module_assessments": {"type": "object", "additionalProperties": false, "required": ["F1", "F2", "F3", "F4", "F5"], "properties": {"F1": {"$ref": "#/$defs/moduleAssessment"}, "F2": {"$ref": "#/$defs/moduleAssessment"}, "F3": {"$ref": "#/$defs/moduleAssessment"}, "F4": {"$ref": "#/$defs/moduleAssessment"}, "F5": {"$ref": "#/$defs/moduleAssessment"}}},
-    "findings": {"type": "array", "items": {"$ref": "https://sentinel.local/schemas/finding.schema.json"}},
+    "findings": {"type": "array", "items": {"$ref": "https://visiops.local/schemas/finding.schema.json"}},
     "source_assessments": {"type": "array"}, "shift_assessment": {"type": ["object", "null"]},
     "overall_disposition": {"type": "string", "enum": ["accept", "review", "quarantine", "inconclusive"]},
     "disposition_trace": {"type": "object", "additionalProperties": false, "required": ["policy", "contributing_finding_ids", "explanation"], "properties": {"policy": {"const": "maximum_disposition_v1"}, "contributing_finding_ids": {"type": "array", "items": {"type": "string", "format": "uuid"}, "uniqueItems": true}, "explanation": {"type": "string", "minLength": 1}}},

@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from sentinel.modules.distribution_shift import DistributionShiftModule
+from visiops.modules.distribution_shift import DistributionShiftModule
 
 
 class TestOODDifficulty(unittest.TestCase):

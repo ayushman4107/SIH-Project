@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from sentinel.modules.model_integrity import (
+from visiops.modules.model_integrity import (
     ModelIntegrityModule,
     analyzed_matrices,
     normalized_spectra,

@@ -1,6 +1,6 @@
-# Sentinel Phase 2 - Application Flow and System Orchestration
+# Visiops Phase 2 - Application Flow and System Orchestration
 
-**Document ID:** SENTINEL-P2-FLOW  
+**Document ID:** VISIOPS-P2-FLOW  
 **Version:** 1.0  
 **Execution model:** One synchronous Python process; no IPC or message bus
 
@@ -82,7 +82,7 @@ The context is not globally mutable. Each stage receives the fields it needs and
 
 Required CLI parameters identify the dataset manifest/root, candidate model, architecture/format, reference dataset, reference models, local embedding backbone, inference subset, configuration, and output root. Optional values are resolved into explicit defaults before the configuration is hashed.
 
-The CLI must never accept the HMAC key as a command-line argument. The key is read from `SENTINEL_SECRET_KEY` so it does not appear in normal process arguments or generated command history.
+The CLI must never accept the HMAC key as a command-line argument. The key is read from `VISIOPS_SECRET_KEY` so it does not appear in normal process arguments or generated command history.
 
 ### 4.2 Input validation
 
@@ -249,7 +249,7 @@ It then appends `run_finalized`, whose authenticated payload commits to the mani
 
 This avoids a circular self-hash between the manifest and audit log.
 
-After validation, the staging directory is renamed to `output\runs\<report_id>`. Sentinel refuses to reopen a finalized directory for mutation.
+After validation, the staging directory is renamed to `output\runs\<report_id>`. Visiops refuses to reopen a finalized directory for mutation.
 
 ## 5. Failure and Continuation Matrix
 
@@ -292,7 +292,7 @@ class GovernanceModule:
     def finalize(self, context: RunContext) -> AssuranceReport: ...
 ```
 
-No module imports another feature module. Shared types and utilities live under `sentinel/core` and `sentinel/utils`. The orchestrator owns ordering and cross-pillar dependency annotations.
+No module imports another feature module. Shared types and utilities live under `visiops/core` and `visiops/utils`. The orchestrator owns ordering and cross-pillar dependency annotations.
 
 ## 8. Audit Event Sequence
 

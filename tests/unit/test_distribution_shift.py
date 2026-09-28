@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from sentinel.modules.distribution_shift import (
+from visiops.modules.distribution_shift import (
     DistributionShiftModule,
     predictive_entropy,
     stable_softmax,

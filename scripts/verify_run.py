@@ -1,4 +1,4 @@
-"""Verify a finalized Sentinel run without modifying it."""
+"""Verify a finalized Visiops run without modifying it."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import json
 import os
 from pathlib import Path
 
-from sentinel.verification import verify_run
+from visiops.verification import verify_run
 
 
 def main() -> int:
@@ -17,7 +17,7 @@ def main() -> int:
     args = parser.parse_args()
     result = verify_run(
         args.run_dir,
-        os.environ.get("SENTINEL_SECRET_KEY"),
+        os.environ.get("VISIOPS_SECRET_KEY"),
         expected_ledger_length=args.expected_ledger_length,
     )
     print(json.dumps(result.to_dict(), indent=2))

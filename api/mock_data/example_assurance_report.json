@@ -305,7 +305,7 @@
         "page_locked": true,
         "secure_zeroization": true,
         "forward_secrecy": true,
-        "ratchet_version": "sentinel-ratchet-v1"
+        "ratchet_version": "visiops-ratchet-v1"
       },
       "inference_records": [
         {
@@ -446,7 +446,7 @@
     }
   },
   "coverage_statement": {
-    "framework": "Sentinel Phase 2",
+    "framework": "Visiops Phase 2",
     "version": "1.0.0",
     "generated": "2024-10-15T10:30:45Z",
     "supported_attacks": [
@@ -614,8 +614,8 @@
   },
   "metadata": {
     "schema_version": "draft_2020_12",
-    "generated_by": "sentinel_phase_2_baseline",
+    "generated_by": "visiops_phase_2_baseline",
     "verifier_command": "python scripts/verify_run.py --run-dir output/runs/550e8400-e29b-41d4-a716-446655440000",
-    "verification_key_required": "SENTINEL_SECRET_KEY"
+    "verification_key_required": "VISIOPS_SECRET_KEY"
   }
 }

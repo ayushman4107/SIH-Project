@@ -1,6 +1,6 @@
-# Sentinel Phase 2 - Backend Schema and Data Contracts
+# Visiops Phase 2 - Backend Schema and Data Contracts
 
-**Document ID:** SENTINEL-P2-SCHEMA  
+**Document ID:** VISIOPS-P2-SCHEMA  
 **Version:** 1.0  
 **Schema dialect:** JSON Schema Draft 2020-12  
 **Persistence:** Filesystem artifacts; no database in Phase 2
@@ -10,7 +10,7 @@
 Phase 2 deliberately has no SQLite or server database. Runtime entities are Python dataclasses and lists. A completed run is serialized into an application-level write-once directory:
 
 ```text
-D:\SIH\sentinel\output\runs\<report_id>\
+D:\SIH\visiops\output\runs\<report_id>\
 |-- assurance_report.json
 |-- audit_log.json
 |-- coverage_statement.json
@@ -55,8 +55,8 @@ No file may be interpreted independently of its `schema_version` and `report_id`
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sentinel.local/schemas/finding.schema.json",
-  "title": "SentinelFinding",
+  "$id": "https://visiops.local/schemas/finding.schema.json",
+  "title": "VisiopsFinding",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -131,8 +131,8 @@ Policy-generated findings such as `provenance_unsigned` and `source_concentratio
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sentinel.local/schemas/assurance-report.schema.json",
-  "title": "SentinelAssuranceReport",
+  "$id": "https://visiops.local/schemas/assurance-report.schema.json",
+  "title": "VisiopsAssuranceReport",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -187,7 +187,7 @@ Policy-generated findings such as `provenance_unsigned` and `source_concentratio
     },
     "findings": {
       "type": "array",
-      "items": { "$ref": "https://sentinel.local/schemas/finding.schema.json" }
+      "items": { "$ref": "https://visiops.local/schemas/finding.schema.json" }
     },
     "source_assessments": {
       "type": "array",
@@ -292,8 +292,8 @@ Policy-generated findings such as `provenance_unsigned` and `source_concentratio
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sentinel.local/schemas/inference-provenance.schema.json",
-  "title": "SentinelInferenceProvenanceRecord",
+  "$id": "https://visiops.local/schemas/inference-provenance.schema.json",
+  "title": "VisiopsInferenceProvenanceRecord",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -367,8 +367,8 @@ The schema permits `binding_hmac=null` only for an unsigned record. An unsigned 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sentinel.local/schemas/audit-log.schema.json",
-  "title": "SentinelAuditLog",
+  "$id": "https://visiops.local/schemas/audit-log.schema.json",
+  "title": "VisiopsAuditLog",
   "type": "array",
   "items": {
     "type": "object",
@@ -389,7 +389,7 @@ The schema permits `binding_hmac=null` only for an unsigned record. An unsigned 
           "disposition_computed", "report_validated", "run_finalized"
         ]
       },
-      "actor": { "const": "sentinel-phase2" },
+      "actor": { "const": "visiops-phase2" },
       "status": { "type": "string", "enum": ["success", "partial", "unavailable", "failed"] },
       "payload": { "type": "object", "additionalProperties": true },
       "previous_entry_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
@@ -413,8 +413,8 @@ Cross-entry invariants not expressible in JSON Schema are mandatory verifier che
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sentinel.local/schemas/coverage-statement.schema.json",
-  "title": "SentinelCoverageStatement",
+  "$id": "https://visiops.local/schemas/coverage-statement.schema.json",
+  "title": "VisiopsCoverageStatement",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -479,8 +479,8 @@ Required unsupported entries include trigger discovery, black-box fingerprinting
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sentinel.local/schemas/run-manifest.schema.json",
-  "title": "SentinelRunManifest",
+  "$id": "https://visiops.local/schemas/run-manifest.schema.json",
+  "title": "VisiopsRunManifest",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "report_id", "created_at", "artifacts"],

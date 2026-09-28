@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 import re
 
-app = FastAPI(title="Sentinel Assurance API")
+app = FastAPI(title="Visiops Assurance API")
 
 # Add CORS middleware for frontend development
 app.add_middleware(

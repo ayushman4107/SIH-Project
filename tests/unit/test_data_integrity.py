@@ -7,9 +7,9 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from sentinel.adapters.datasets import DatasetManifest
-from sentinel.core.models import DatasetSample
-from sentinel.modules.data_integrity import (
+from visiops.adapters.datasets import DatasetManifest
+from visiops.core.models import DatasetSample
+from visiops.modules.data_integrity import (
     DataIntegrityConfig,
     DataIntegrityModule,
     _cosine_pairs,

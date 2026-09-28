@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from sentinel.core.enums import Disposition
-from sentinel.core.normalizers import (
+from visiops.core.enums import Disposition
+from visiops.core.normalizers import (
     cosine_confidence,
     empirical_percentile,
     generic_disposition,

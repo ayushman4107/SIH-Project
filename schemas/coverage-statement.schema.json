@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sentinel.local/schemas/coverage-statement.schema.json",
-  "title": "SentinelCoverageStatement",
+  "$id": "https://visiops.local/schemas/coverage-statement.schema.json",
+  "title": "VisiopsCoverageStatement",
   "type": "object", "additionalProperties": false,
   "required": ["schema_version", "report_id", "implemented_checks", "executed_checks", "unavailable_checks", "supported_attack_classes", "unsupported_attack_classes", "trust_assumptions", "security_limitations", "validation_scope"],
   "properties": {

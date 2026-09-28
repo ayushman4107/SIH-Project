@@ -1,6 +1,6 @@
-# Sentinel Phase 2 - Technical Requirements Document
+# Visiops Phase 2 - Technical Requirements Document
 
-**Document ID:** SENTINEL-P2-TRD  
+**Document ID:** VISIOPS-P2-TRD  
 **Version:** 1.0  
 **Architecture class:** Single-process offline prototype  
 **Target:** Windows 10/11, x86-64, Python 3.10  
@@ -10,7 +10,7 @@
 
 ### 1.1 System context
 
-Sentinel is a local CLI process. It receives operator-selected untrusted assets and locally placed trusted-by-configuration reference assets. It performs no network communication and exposes no server or frontend interface.
+Visiops is a local CLI process. It receives operator-selected untrusted assets and locally placed trusted-by-configuration reference assets. It performs no network communication and exposes no server or frontend interface.
 
 Normal assurance is read-only with respect to submitted datasets and models and requires no retraining. Contributor identities, when supplied as `source_id`, support source-level evidence aggregation but confer no privileged trust status.
 
@@ -26,7 +26,7 @@ flowchart LR
         E[ResNet-18 extractor weights]
         R[Clean reference models]
         RD[Reference dataset]
-        K[SENTINEL_SECRET_KEY]
+        K[VISIOPS_SECRET_KEY]
     end
 
     subgraph P[Single Python process]
@@ -224,7 +224,7 @@ H(p) = -sum(p_i * log(max(p_i, epsilon)))
 R = mean(H_incoming) / max(mean(H_reference), epsilon)
 ```
 
-For `R >= 1.3`, Sentinel emits `possible_drift` with fixed `REVIEW` because intent is unknown. For `R <= 0.7`, adverse confidence is:
+For `R >= 1.3`, Visiops emits `possible_drift` with fixed `REVIEW` because intent is unknown. For `R <= 0.7`, adverse confidence is:
 
 ```text
 confidence = clamp(0.70 + 0.30 * (0.7 - R) / 0.7, 0, 1)
@@ -298,7 +298,7 @@ If key validation, HMAC generation, evidence persistence, or protected append fa
 ### 7.1 Run layout
 
 ```text
-D:\SIH\sentinel\output\runs\<report_id>\
+D:\SIH\visiops\output\runs\<report_id>\
 |-- assurance_report.json
 |-- audit_log.json
 |-- coverage_statement.json
@@ -328,7 +328,7 @@ The manifest excludes the audit log to prevent a circular self-commitment; the a
 
 ### 8.1 Accepted trust assumptions
 
-- The Windows host, Python runtime, installed packages, current Sentinel code, operator, and configured reference directories are trusted.
+- The Windows host, Python runtime, installed packages, current Visiops code, operator, and configured reference directories are trusted.
 - The HMAC key remains secret and is available to the process.
 - Files read during a synchronous hash/copy operation do not change concurrently.
 
@@ -340,7 +340,7 @@ The manifest excludes the audit log to prevent a circular self-commitment; the a
 
 ### 8.3 Unsupported guarantees
 
-- No protection against host administrators, compromised Sentinel code/process, key holders, malicious reference assets, rollback of the entire run directory, or replacement of the verifier.
+- No protection against host administrators, compromised Visiops code/process, key holders, malicious reference assets, rollback of the entire run directory, or replacement of the verifier.
 - No trusted time or cross-run monotonic state.
 - No proof of non-existence or tail completeness without an expected record count.
 - No confidentiality or encryption at rest.

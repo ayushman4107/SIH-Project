@@ -1,16 +1,16 @@
-# Sentinel Phase 2 - Implementation Flow
+# Visiops Phase 2 - Implementation Flow
 
-**Document ID:** SENTINEL-P2-IMPLEMENTATION  
+**Document ID:** VISIOPS-P2-IMPLEMENTATION  
 **Version:** 1.1  
 **Delivery window:** Less than 2 calendar days; planned completion by T+44 hours  
-**Repository root:** `D:\SIH\sentinel`  
+**Repository root:** `D:\SIH\visiops`  
 **Implementation language:** Python 3.10
 
 ## 1. Delivery Strategy
 
 Implementation proceeds contract-first. Schemas, typed domain objects, canonicalization, and deterministic fixtures are established before feature engines. Each module is independently testable, but integration remains a single sequential process. No frontend work is included.
 
-The sub-48-hour constraint requires concurrent implementation workstreams and a frozen scope. It does not change the deployed architecture: the Sentinel application remains one sequential Python process. The countdown begins only when the repository, pinned offline wheelhouse, CIFAR-10/SVHN data, extractor weights, and clean-reference/benchmark training inputs are present locally. Formal BadNets training should use an available compatible GPU; the assurance pipeline itself retains its CPU baseline.
+The sub-48-hour constraint requires concurrent implementation workstreams and a frozen scope. It does not change the deployed architecture: the Visiops application remains one sequential Python process. The countdown begins only when the repository, pinned offline wheelhouse, CIFAR-10/SVHN data, extractor weights, and clean-reference/benchmark training inputs are present locally. Formal BadNets training should use an available compatible GPU; the assurance pipeline itself retains its CPU baseline.
 
 The build order follows technical dependency rather than presentation order:
 
@@ -33,7 +33,7 @@ flowchart LR
 ## 2. Repository Structure
 
 ```text
-D:\SIH\sentinel\
+D:\SIH\visiops\
 |-- README.md
 |-- pyproject.toml
 |-- requirements.txt
@@ -50,7 +50,7 @@ D:\SIH\sentinel\
 |   |-- audit-log.schema.json
 |   |-- coverage-statement.schema.json
 |   `-- run-manifest.schema.json
-|-- sentinel\
+|-- visiops\
 |   |-- __init__.py
 |   |-- __main__.py
 |   |-- pipeline.py
@@ -147,7 +147,7 @@ Configuration loading shall:
 1. parse local YAML;
 2. reject unknown security-sensitive keys;
 3. resolve defaults into an explicit materialized configuration;
-4. normalize paths relative to `D:\SIH\sentinel` or an explicitly supplied input root;
+4. normalize paths relative to `D:\SIH\visiops` or an explicitly supplied input root;
 5. validate threshold ranges and resource limits;
 6. exclude the HMAC secret from the configuration object; and
 7. produce a canonical configuration digest.
@@ -304,7 +304,7 @@ python -m pytest tests\unit -q
 python -m pytest tests\integration -q
 python -m pytest tests\acceptance -q
 python scripts\generate_synthetic_models.py --config configs\default.yaml
-python -m sentinel run --config configs\default.yaml
+python -m visiops run --config configs\default.yaml
 python scripts\verify_run.py --run-dir output\runs\<report_id>
 ```
 
@@ -335,6 +335,6 @@ The prototype is done when:
 - HMAC and internal chain mutations are detected within the declared threat model;
 - unsigned inference forces REVIEW;
 - benchmark claims use demonstration-scale language;
-- completed run directories are never overwritten by Sentinel;
+- completed run directories are never overwritten by Visiops;
 - the complete workflow installs and runs without network access; and
 - frontend/UI code has not been introduced.

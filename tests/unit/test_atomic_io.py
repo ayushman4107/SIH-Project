@@ -6,9 +6,9 @@ import unittest
 from pathlib import Path
 from uuid import UUID
 
-from sentinel.core.errors import FinalizationError, ValidationError
-from sentinel.utils.atomic_io import RunStager, atomic_write_json
-from sentinel.utils.paths import resolve_within
+from visiops.core.errors import FinalizationError, ValidationError
+from visiops.utils.atomic_io import RunStager, atomic_write_json
+from visiops.utils.paths import resolve_within
 
 
 class AtomicIoTests(unittest.TestCase):

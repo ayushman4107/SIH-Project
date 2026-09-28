@@ -12,11 +12,11 @@ from scripts.generate_synthetic_models import (
     evaluate_quality_gate,
     select_poison_indices,
 )
-from sentinel.core.enums import Disposition, FindingType, Pillar, Severity
-from sentinel.core.errors import ConfigurationError, ValidationError
-from sentinel.core.models import AssetLocator, Finding, MethodIdentity
-from sentinel.core.schema_registry import SchemaRegistry
-from sentinel.utils.config import load_config
+from visiops.core.enums import Disposition, FindingType, Pillar, Severity
+from visiops.core.errors import ConfigurationError, ValidationError
+from visiops.core.models import AssetLocator, Finding, MethodIdentity
+from visiops.core.schema_registry import SchemaRegistry
+from visiops.utils.config import load_config
 
 
 class ContractTests(unittest.TestCase):
@@ -25,7 +25,7 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(len(registry._schemas), 6)
         for schema in registry._schemas.values():
             self.assertEqual(schema["$schema"], "https://json-schema.org/draft/2020-12/schema")
-            self.assertTrue(schema["$id"].startswith("https://sentinel.local/"))
+            self.assertTrue(schema["$id"].startswith("https://visiops.local/"))
 
     def test_finding_serialization_uses_wire_values(self) -> None:
         finding = Finding(

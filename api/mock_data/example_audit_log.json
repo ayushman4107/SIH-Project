@@ -6,7 +6,7 @@
     "entry_count": 5,
     "chain_status": "valid",
     "hmac_scheme": "hmac_sha256",
-    "secret_key_required": "SENTINEL_SECRET_KEY"
+    "secret_key_required": "VISIOPS_SECRET_KEY"
   },
   "ledger": [
     {
@@ -175,7 +175,7 @@
     "status": "verified",
     "message": "All 5 ledger entries present, sequenced correctly, hash chain intact, and HMAC signatures valid. No tampering detected.",
     "timestamp_verified": "2024-10-15T10:30:45Z",
-    "verified_against_key": "SENTINEL_SECRET_KEY hash: sha256:key_hash_not_stored",
+    "verified_against_key": "VISIOPS_SECRET_KEY hash: sha256:key_hash_not_stored",
     "tail_truncation_check": "UNSUPPORTED without independently retained expected ledger length",
     "independent_ledger_length_provided": false,
     "tail_truncation_risk": "Cannot detect if entries 6+ were deleted after finalization without external reference."

@@ -5,13 +5,13 @@ import tempfile
 from pathlib import Path
 from uuid import uuid4
 
-from sentinel.core.enums import ModuleStatus
-from sentinel.core.models import ModuleAssessment
-from sentinel.modules.governance import GovernanceModule
-from sentinel.modules.inference_provenance import AuditLedger
-from sentinel.utils.atomic_io import RunStager
-from sentinel.utils.hashing import sha256_file
-from sentinel.verification import verify_run
+from visiops.core.enums import ModuleStatus
+from visiops.core.models import ModuleAssessment
+from visiops.modules.governance import GovernanceModule
+from visiops.modules.inference_provenance import AuditLedger
+from visiops.utils.atomic_io import RunStager
+from visiops.utils.hashing import sha256_file
+from visiops.verification import verify_run
 
 SECRET = "34" * 32
 

@@ -1,4 +1,4 @@
-# Sentinel Phase 2 Implementation Status
+# Visiops Phase 2 Implementation Status
 
 **Assessment date:** 2026-09-05
 **Repository:** `ayushman4107/SIH-Project`

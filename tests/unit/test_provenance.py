@@ -7,8 +7,8 @@ from pathlib import Path
 
 import numpy as np
 
-from sentinel.core.enums import VerificationVerdict
-from sentinel.modules.inference_provenance import AuditLedger, InferenceProvenanceModule
+from visiops.core.enums import VerificationVerdict
+from visiops.modules.inference_provenance import AuditLedger, InferenceProvenanceModule
 
 SECRET = "11" * 32
 

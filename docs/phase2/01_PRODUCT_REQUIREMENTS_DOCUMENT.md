@@ -1,6 +1,6 @@
-# Sentinel Phase 2 - Product Requirements Document
+# Visiops Phase 2 - Product Requirements Document
 
-**Document ID:** SENTINEL-P2-PRD  
+**Document ID:** VISIOPS-P2-PRD  
 **Version:** 1.1  
 **Status:** Approved implementation baseline  
 **Product stage:** Internal sub-48-hour hackathon prototype  
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-Sentinel Phase 2 is an offline, evidence-producing assurance tool for classification-oriented computer-vision pipelines. It evaluates an untrusted training dataset, an untrusted PyTorch or TorchScript model, and inference results produced during the run. It then emits a machine-readable assurance report recommending `ACCEPT`, `REVIEW`, `QUARANTINE`, or, when no assessment can be performed, `INCONCLUSIVE`.
+Visiops Phase 2 is an offline, evidence-producing assurance tool for classification-oriented computer-vision pipelines. It evaluates an untrusted training dataset, an untrusted PyTorch or TorchScript model, and inference results produced during the run. It then emits a machine-readable assurance report recommending `ACCEPT`, `REVIEW`, `QUARANTINE`, or, when no assessment can be performed, `INCONCLUSIVE`.
 
 The prototype does not attempt to prove that an asset is safe. It detects a defined set of integrity risks using reproducible heuristics and statistical methods, retains the evidence behind each adverse finding, and states where evidence is missing or a method is unavailable. Confidence values are deterministic, normalized anomaly-strength scores marked `uncalibrated`; they are not represented as true probabilities.
 
@@ -17,7 +17,7 @@ The product is intentionally narrower than the final SIH system. Phase 2 is a si
 
 ## 2. Product Vision and Principles
 
-Sentinel provides a chain of evidence across five assurance pillars:
+Visiops provides a chain of evidence across five assurance pillars:
 
 1. Inspect data for label errors, duplicate flooding, statistical outliers, and source-level concentration.
 2. inspect model weights for architecture-matched spectral anomalies.
@@ -34,7 +34,7 @@ The governing principles are:
 - **Offline determinism:** normal execution must perform no network access or runtime downloads.
 - **Non-invasive assurance:** assessment never requires retraining, fine-tuning, or otherwise modifying a submitted model. Training is performed only by the separate, team-owned synthetic benchmark generator.
 - **Contributor-aware zero trust:** contributor/source identifiers are treated as attribution metadata, not as trust grants; every source is assessed by the same rules, and missing attribution is surfaced as a limitation.
-- **Write-once runs:** a completed run directory is never modified by Sentinel. This is an application invariant, not filesystem-enforced immutability.
+- **Write-once runs:** a completed run directory is never modified by Visiops. This is an application invariant, not filesystem-enforced immutability.
 
 ## 3. Scope
 
@@ -84,7 +84,7 @@ Implements and validates detectors during a sub-48-hour sprint. The developer ne
 
 ## 5. End-to-End User Outcome
 
-Given a valid run configuration, Sentinel shall:
+Given a valid run configuration, Visiops shall:
 
 1. validate paths, formats, labels, metadata, reference assets, key material, and writable output location;
 2. create a unique run identifier and an exclusively-created run directory;
@@ -113,7 +113,7 @@ The product shall load a locally supplied ImageNet ResNet-18 backbone, remove th
 
 #### PRD-F1-03: Label-error findings
 
-Sentinel shall use `StratifiedKFold(n_splits=5, shuffle=True, random_state=42)`. Within each fold, `StandardScaler` and class-balanced logistic regression shall be fit only on the training partition to avoid leakage. The resulting out-of-fold probabilities shall be passed to CleanLab.
+Visiops shall use `StratifiedKFold(n_splits=5, shuffle=True, random_state=42)`. Within each fold, `StandardScaler` and class-balanced logistic regression shall be fit only on the training partition to avoid leakage. The resulting out-of-fold probabilities shall be passed to CleanLab.
 
 For each flagged label issue:
 
@@ -124,15 +124,15 @@ For each flagged label issue:
 
 #### PRD-F1-04: Duplicate findings
 
-Sentinel shall calculate 64-bit pHash values and use Hamming distance <=8 as the primary visual-duplicate rule. It shall also run a complete-dataset, chunked cosine-nearest-neighbor search over embeddings with `k=10`, excluding self-matches, and flag cosine similarity >=0.95. Pairwise matches shall be collapsed into connected duplicate clusters while preserving every sample occurrence and source relationship.
+Visiops shall calculate 64-bit pHash values and use Hamming distance <=8 as the primary visual-duplicate rule. It shall also run a complete-dataset, chunked cosine-nearest-neighbor search over embeddings with `k=10`, excluding self-matches, and flag cosine similarity >=0.95. Pairwise matches shall be collapsed into connected duplicate clusters while preserving every sample occurrence and source relationship.
 
 #### PRD-F1-05: Statistical outliers
 
-Sentinel shall fit an Isolation Forest to frozen embeddings using deterministic configuration. The adverse raw score is `-score_samples`. Confidence is the empirical percentile of that score within the assessed dataset and is labeled `uncalibrated`. The default finding boundary is the configured 95th percentile.
+Visiops shall fit an Isolation Forest to frozen embeddings using deterministic configuration. The adverse raw score is `-score_samples`. Confidence is the empirical percentile of that score within the assessed dataset and is labeled `uncalibrated`. The default finding boundary is the configured 95th percentile.
 
 #### PRD-F1-06: Source reputation
 
-When source metadata exists, Sentinel shall aggregate adverse sample findings per source. A chi-square concentration test may run only when at least five anomalies exist and expected cell counts are valid.
+When source metadata exists, Visiops shall aggregate adverse sample findings per source. A chi-square concentration test may run only when at least five anomalies exist and expected cell counts are valid.
 
 - `QUARANTINE`: `p < 0.01` and source anomaly rate is greater than twice the dataset-wide rate.
 - `REVIEW`: one or more source anomalies exist but the quarantine condition is not met, including insufficient chi-square counts.
@@ -155,7 +155,7 @@ A candidate model shall be compared only against reference models with the same 
 
 #### PRD-F2-03: Per-layer spectral analysis
 
-For every convolution weight tensor, Sentinel shall reshape weights to `[out_channels, -1]`; linear weights remain two-dimensional. Biases, normalization parameters, and tensors with fewer than two dimensions shall be excluded. Each singular-value vector shall be L1-normalized.
+For every convolution weight tensor, Visiops shall reshape weights to `[out_channels, -1]`; linear weights remain two-dimensional. Biases, normalization parameters, and tensors with fewer than two dimensions shall be excluded. Each singular-value vector shall be L1-normalized.
 
 For each analyzed layer, the candidate spectrum shall be compared with the element-wise median spectrum from clean references using first Wasserstein distance. The model score is the 95th percentile of layer distances.
 
@@ -180,7 +180,7 @@ Because the five clean models are also the threshold-calibration references, the
 
 #### PRD-F3-01: Component binding
 
-For every protected inference, Sentinel shall hash:
+For every protected inference, Visiops shall hash:
 
 - original encoded input-image bytes;
 - whole submitted-model file bytes;
@@ -197,11 +197,11 @@ Each audit entry shall include a run-local sequence number beginning at 1, UTC t
 
 #### PRD-F3-03: Key handling
 
-`SENTINEL_SECRET_KEY` shall contain exactly 64 hexadecimal characters and decode to 32 bytes. Missing, malformed, or inaccessible key material shall never be logged or echoed. The same key is used for binding and ledger authentication, with domain separation.
+`VISIOPS_SECRET_KEY` shall contain exactly 64 hexadecimal characters and decode to 32 bytes. Missing, malformed, or inaccessible key material shall never be logged or echoed. The same key is used for binding and ledger authentication, with domain separation.
 
 #### PRD-F3-04: Generation and verification
 
-Sentinel shall support both provenance generation and later verification. Verification shall re-read retained/referenced input, model, configuration, and `.npy` output; recompute all component hashes; verify the binding HMAC, entry HMAC, sequence continuity, and predecessor link; and emit field-specific failures.
+Visiops shall support both provenance generation and later verification. Verification shall re-read retained/referenced input, model, configuration, and `.npy` output; recompute all component hashes; verify the binding HMAC, entry HMAC, sequence continuity, and predecessor link; and emit field-specific failures.
 
 #### PRD-F3-05: Fail-open exception
 
@@ -213,11 +213,11 @@ Replay detection is limited to duplicate or reordered records within one process
 
 #### PRD-F4-01: OOD distance
 
-Sentinel shall fit Ledoit-Wolf shrinkage covariance over reference embeddings and compute Mahalanobis distance for incoming samples. The default threshold is the empirical 95th percentile of reference distances. The evidence shall retain reference-set identity, covariance configuration, raw distance, percentile, and threshold.
+Visiops shall fit Ledoit-Wolf shrinkage covariance over reference embeddings and compute Mahalanobis distance for incoming samples. The default threshold is the empirical 95th percentile of reference distances. The evidence shall retain reference-set identity, covariance configuration, raw distance, percentile, and threshold.
 
 #### PRD-F4-02: Predictive entropy ratio
 
-The submitted model shall produce float32 logits for both the reference and incoming batches. Sentinel shall apply softmax and calculate per-sample entropy `-sum(p * log(p + epsilon))`; batch entropy is the arithmetic mean. The shift ratio is `incoming_mean / max(reference_mean, epsilon)`.
+The submitted model shall produce float32 logits for both the reference and incoming batches. Visiops shall apply softmax and calculate per-sample entropy `-sum(p * log(p + epsilon))`; batch entropy is the arithmetic mean. The shift ratio is `incoming_mean / max(reference_mean, epsilon)`.
 
 - Ratio >=1.3: `POSSIBLE_DRIFT` and `REVIEW` unless stronger evidence exists.
 - Ratio <=0.7: `SUSPICIOUS` and `REVIEW` or `QUARANTINE` according to normalized anomaly confidence.
@@ -249,14 +249,14 @@ Every report shall enumerate executed checks, unavailable checks and reasons, as
 
 #### PRD-F5-04: Application-level write-once output
 
-Each run shall be written to `D:\SIH\sentinel\output\runs\<report_id>\`. Sentinel shall use exclusive creation and refuse to overwrite an existing run. Input/config/output evidence shall be copied into `artifacts/`; the model shall remain external and be referenced by path and digest. A missing model during later verification yields `UNAVAILABLE`; a present model with a different digest yields `TAMPERED`.
+Each run shall be written to `D:\SIH\visiops\output\runs\<report_id>\`. Visiops shall use exclusive creation and refuse to overwrite an existing run. Input/config/output evidence shall be copied into `artifacts/`; the model shall remain external and be referenced by path and digest. A missing model during later verification yields `UNAVAILABLE`; a present model with a different digest yields `TAMPERED`.
 
 ## 7. Security and Trust Requirements
 
 - Normal runtime shall make no network requests.
 - Reference assets are trusted by local placement; their authenticity is not verified.
 - Submitted `.pt` parsing is not sandboxed and may expose pickle-deserialization risk.
-- The HMAC key must never appear in reports, logs, exception messages, or command history generated by Sentinel.
+- The HMAC key must never appear in reports, logs, exception messages, or command history generated by Visiops.
 - HMAC comparison shall use constant-time comparison.
 - Paths shall be normalized and checked against configured roots before reads or copies.
 - JSON parsers shall reject non-finite numbers where the schema requires finite numbers.

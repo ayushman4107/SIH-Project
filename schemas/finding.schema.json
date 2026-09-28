@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sentinel.local/schemas/finding.schema.json",
-  "title": "SentinelFinding",
+  "$id": "https://visiops.local/schemas/finding.schema.json",
+  "title": "VisiopsFinding",
   "type": "object",
   "additionalProperties": false,
   "required": ["finding_id", "finding_type", "pillar", "affected_asset", "severity", "raw_score", "decision_threshold", "confidence", "confidence_normalizer", "calibration_status", "human_readable_reason", "evidence", "method", "recommended_disposition"],

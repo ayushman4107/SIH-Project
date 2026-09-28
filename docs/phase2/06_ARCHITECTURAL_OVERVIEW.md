@@ -2,7 +2,7 @@
 
 ## The Unified Pipeline
 
-This overview reflects the current state of the Sentinel CV Assurance prototype, including the newly added advanced detection modules for distributed poisoning, white-box backdoor detection, advanced drift analysis, and cryptographic key ratcheting.
+This overview reflects the current state of the Visiops CV Assurance prototype, including the newly added advanced detection modules for distributed poisoning, white-box backdoor detection, advanced drift analysis, and cryptographic key ratcheting.
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐

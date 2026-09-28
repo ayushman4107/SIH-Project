@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import yaml
 
-from sentinel.pipeline import SentinelPipeline
+from visiops.pipeline import VisiopsPipeline
 
 
 class TestGlobSafety(unittest.TestCase):
@@ -54,16 +54,16 @@ class TestGlobSafety(unittest.TestCase):
             # Instead of running the full pipeline, we'll just check iterdir behavior
             # by looking at the patch that logs a warning
 
-            with patch("sentinel.pipeline.load_config", return_value=config):
+            with patch("visiops.pipeline.load_config", return_value=config):
                 with patch("logging.warning") as mock_warn:
-                    with patch("sentinel.pipeline.load_classification_manifest") as mock_lcm:
+                    with patch("visiops.pipeline.load_classification_manifest") as mock_lcm:
                         mock_sample = MagicMock()
                         mock_sample.image_path = "dummy.png"
                         mock_lcm.return_value.samples = [mock_sample]
-                        with patch("sentinel.pipeline.load_model"):
-                            with patch("sentinel.pipeline.EmbeddingExtractor"):
+                        with patch("visiops.pipeline.load_model"):
+                            with patch("visiops.pipeline.EmbeddingExtractor"):
                                 try:
-                                    SentinelPipeline().run(config_path)
+                                    VisiopsPipeline().run(config_path)
                                 except Exception:
                                     import traceback
 

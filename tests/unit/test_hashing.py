@@ -7,8 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from sentinel.core.errors import ConfigurationError
-from sentinel.utils.hashing import (
+from visiops.core.errors import ConfigurationError
+from visiops.utils.hashing import (
     binding_hmac,
     canonical_json_bytes,
     ledger_hmac,
@@ -46,7 +46,7 @@ class HashingTests(unittest.TestCase):
     def test_file_hash_streams_correctly(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "asset.bin"
-            path.write_bytes(b"sentinel" * 1000)
+            path.write_bytes(b"visiops" * 1000)
             expected = hashlib.sha256(path.read_bytes()).hexdigest()
             self.assertEqual(sha256_file(path, chunk_size=17), expected)
 

@@ -6,18 +6,18 @@ import unittest
 from pathlib import Path
 from uuid import UUID
 
-from sentinel.core.enums import Disposition, FindingType, ModuleStatus, Pillar, Severity
-from sentinel.core.models import (
+from visiops.core.enums import Disposition, FindingType, ModuleStatus, Pillar, Severity
+from visiops.core.models import (
     AssetLocator,
     Finding,
     MethodIdentity,
     ModuleAssessment,
     UnavailableMethod,
 )
-from sentinel.modules.governance import GovernanceModule, overall_disposition
-from sentinel.modules.inference_provenance import AuditLedger
-from sentinel.utils.atomic_io import RunStager
-from sentinel.utils.hashing import sha256_file
+from visiops.modules.governance import GovernanceModule, overall_disposition
+from visiops.modules.inference_provenance import AuditLedger
+from visiops.utils.atomic_io import RunStager
+from visiops.utils.hashing import sha256_file
 
 
 def _finding(disposition: Disposition) -> Finding:

@@ -5,12 +5,12 @@ import tempfile
 from pathlib import Path
 from uuid import uuid4
 
-from sentinel.core.enums import Disposition, FindingType, ModuleStatus, Pillar, Severity
-from sentinel.core.models import AssetLocator, Finding, MethodIdentity, ModuleAssessment
-from sentinel.modules.governance import GovernanceModule
-from sentinel.utils.atomic_io import RunStager
-from sentinel.utils.hashing import sha256_file
-from sentinel.verification import verify_run
+from visiops.core.enums import Disposition, FindingType, ModuleStatus, Pillar, Severity
+from visiops.core.models import AssetLocator, Finding, MethodIdentity, ModuleAssessment
+from visiops.modules.governance import GovernanceModule
+from visiops.utils.atomic_io import RunStager
+from visiops.utils.hashing import sha256_file
+from visiops.verification import verify_run
 
 
 def test_unsigned_fail_open_finalizes_as_review_without_fake_audit_protection() -> None:
