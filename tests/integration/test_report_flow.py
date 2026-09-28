@@ -23,7 +23,7 @@ def test_unsigned_fail_open_finalizes_as_review_without_fake_audit_protection() 
         unsigned = Finding(
             finding_type=FindingType.PROVENANCE_UNSIGNED,
             pillar=Pillar.F3,
-            affected_asset=AssetLocator("inference_record", "record-1"),
+            affected_asset=AssetLocator("inference", "record-1"),
             severity=Severity.HIGH,
             raw_score=None,
             decision_threshold="signed",
