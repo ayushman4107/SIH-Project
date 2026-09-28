@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
-from .enums import Disposition, FindingType, ModuleStatus, Pillar, Severity
+from .enums import Disposition, FindingType, ModuleStatus, Pillar, Severity, SubjectType
 
 
 def utc_now() -> str:
@@ -31,8 +31,8 @@ def wire_value(value: Any) -> Any:
 
 @dataclass(frozen=True)
 class AssetLocator:
-    asset_type: str
-    asset_id: str
+    subject_type: SubjectType
+    subject_id: str
     sample_ids: tuple[str, ...] = ()
     source_id: str | None = None
     layer_name: str | None = None

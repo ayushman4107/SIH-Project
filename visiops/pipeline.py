@@ -1,3 +1,4 @@
+from visiops.core.enums import SubjectType
 """Single-process F1 -> F2 -> F3 -> F4 -> F5 orchestration."""
 
 from __future__ import annotations
@@ -48,7 +49,7 @@ def _engine_error(pillar: Pillar, method: str, exc: Exception) -> ModuleAssessme
     finding = Finding(
         finding_type=FindingType.ENGINE_ERROR,
         pillar=pillar,
-        affected_asset=AssetLocator("run", "current"),
+        affected_asset=AssetLocator(SubjectType.INFERENCE, "current"),
         severity=Severity.HIGH,
         raw_score=None,
         decision_threshold="successful engine execution",
@@ -278,7 +279,7 @@ class VisiopsPipeline:
                                     Finding(
                                         finding_type=FindingType.POSSIBLE_DRIFT, # Reusing type for now, or define SPECTRAL_ANOMALY
                                         pillar=Pillar.F1,
-                                        affected_asset=AssetLocator("sample", sample.sample_id),
+                                        affected_asset=AssetLocator(SubjectType.TRAINING_SAMPLE, sample.sample_id),
                                         severity=severity,
                                         raw_score=metrics["flagged_fraction"],
                                         decision_threshold=0.001,
@@ -618,3 +619,4 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
     return 0
+

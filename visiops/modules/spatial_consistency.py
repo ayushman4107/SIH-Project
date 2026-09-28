@@ -1,3 +1,4 @@
+from visiops.core.enums import SubjectType
 """FF6 V8: Spatial Bounding-Box Consistency Anchor."""
 
 from __future__ import annotations
@@ -175,7 +176,7 @@ class SpatialConsistencyModule:
                         Finding(
                             finding_type=FindingType.OOD_SAMPLE,
                             pillar=Pillar.F1,
-                            affected_asset=AssetLocator("bounding_box", f"{ann.image_id}_{idx}"),
+                            affected_asset=AssetLocator(SubjectType.TRAINING_SAMPLE, f"{ann.image_id}_{idx}"),
                             severity=Severity.HIGH,
                             raw_score=1.0 - score,
                             decision_threshold=1.0 - global_5th_percentile,
@@ -197,7 +198,7 @@ class SpatialConsistencyModule:
                         Finding(
                             finding_type=FindingType.OOD_SAMPLE,
                             pillar=Pillar.F1,
-                            affected_asset=AssetLocator("bounding_box", f"{ann.image_id}_{idx}"),
+                            affected_asset=AssetLocator(SubjectType.TRAINING_SAMPLE, f"{ann.image_id}_{idx}"),
                             severity=Severity.CRITICAL,
                             raw_score=dct_energy,
                             decision_threshold=0.8,
@@ -253,7 +254,7 @@ class SpatialConsistencyModule:
                         Finding(
                             finding_type=FindingType.STATISTICAL_OUTLIER,
                             pillar=Pillar.F1,
-                            affected_asset=AssetLocator("bounding_box", f"{annotations[ann_idx].image_id}_{ann_idx}"),
+                            affected_asset=AssetLocator(SubjectType.TRAINING_SAMPLE, f"{annotations[ann_idx].image_id}_{ann_idx}"),
                             severity=severity,
                             raw_score=min_cost,
                             decision_threshold=0.8,
@@ -276,3 +277,4 @@ class SpatialConsistencyModule:
             tuple(executed_methods),
             tuple(unavailable_methods),
         )
+

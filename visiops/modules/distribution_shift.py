@@ -1,3 +1,4 @@
+from visiops.core.enums import SubjectType
 """FF5 V8: Gradient-Norm Spoofing Defense with Beta-Divergence, VJP, and Isolation Forests."""
 
 from __future__ import annotations
@@ -270,7 +271,7 @@ class DistributionShiftModule:
                     Finding(
                         finding_type=FindingType.OOD_SAMPLE,
                         pillar=Pillar.F4,
-                        affected_asset=AssetLocator("sample", sample_id),
+                        affected_asset=AssetLocator(SubjectType.TRAINING_SAMPLE, sample_id),
                         severity=severity,
                         raw_score=risk,
                         decision_threshold=1.0,
@@ -313,3 +314,4 @@ class DistributionShiftModule:
             fallback_active=fallback_active,
             beta_divergence_alert=False # Stub for online CDF updates
         )
+

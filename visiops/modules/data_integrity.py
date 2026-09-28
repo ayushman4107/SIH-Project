@@ -1,3 +1,4 @@
+from visiops.core.enums import SubjectType
 """F1 label, duplicate, outlier, and source-concentration assurance."""
 
 from __future__ import annotations
@@ -354,7 +355,7 @@ def _source_assessments(
                 Finding(
                     finding_type=FindingType.SOURCE_CONCENTRATION,
                     pillar=Pillar.F1,
-                    affected_asset=AssetLocator("source", source_id, source_id=source_id),
+                    affected_asset=AssetLocator(SubjectType.TRAINING_SAMPLE, source_id, source_id=source_id),
                     severity=Severity.HIGH
                     if disposition is Disposition.QUARANTINE
                     else Severity.MEDIUM,
@@ -530,7 +531,7 @@ class DataIntegrityModule:
                         Finding(
                             finding_type=FindingType.INFLUENCE_SYSTEMATIC_MISLABEL,
                             pillar=Pillar.F1,
-                            affected_asset=AssetLocator("sample", f.sample_id),
+                            affected_asset=AssetLocator(SubjectType.TRAINING_SAMPLE, f.sample_id),
                             severity=Severity.CRITICAL
                             if f.severity == "critical"
                             else Severity.HIGH,
@@ -633,3 +634,4 @@ class DataIntegrityModule:
             ModuleAssessment(status, tuple(findings), tuple(executed), tuple(unavailable)),
             tuple(sources),
         )
+

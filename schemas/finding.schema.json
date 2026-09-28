@@ -7,14 +7,14 @@
   "required": ["finding_id", "finding_type", "pillar", "affected_asset", "severity", "raw_score", "decision_threshold", "confidence", "confidence_normalizer", "calibration_status", "human_readable_reason", "evidence", "method", "recommended_disposition"],
   "properties": {
     "finding_id": {"type": "string", "format": "uuid"},
-    "finding_type": {"type": "string", "enum": ["label_error", "near_duplicate", "statistical_outlier", "source_concentration", "weight_spectral_anomaly", "non_finite_weight", "provenance_tampered", "provenance_reordered", "provenance_deleted", "provenance_unsigned", "ood_sample", "possible_drift", "suspicious_entropy_shift", "engine_error", "malformed_input"]},
+    "finding_type": {"type": "string", "enum": ["label_error", "near_duplicate", "statistical_outlier", "source_concentration", "weight_spectral_anomaly", "non_finite_weight", "provenance_tampered", "provenance_reordered", "provenance_deleted", "provenance_unsigned", "ood_sample", "possible_drift", "suspicious_entropy_shift", "engine_error", "malformed_input", "activation_cluster_anomaly", "gradient_misalignment", "influence_systematic_mislabel", "orthogonal_drift_anomaly", "natural_covariate_drift"]},
     "pillar": {"type": "string", "enum": ["F1", "F2", "F3", "F4", "F5"]},
     "affected_asset": {
       "type": "object", "additionalProperties": false,
-      "required": ["asset_type", "asset_id"],
+      "required": ["subject_type", "subject_id"],
       "properties": {
-        "asset_type": {"type": "string", "enum": ["sample", "duplicate_cluster", "source", "dataset", "model", "inference_record", "inference_batch", "run"]},
-        "asset_id": {"type": "string", "minLength": 1},
+        "subject_type": {"type": "string", "enum": ["training_sample", "candidate_model", "inference"]},
+        "subject_id": {"type": "string", "minLength": 1},
         "sample_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
         "source_id": {"type": ["string", "null"]},
         "layer_name": {"type": ["string", "null"]},

@@ -36,6 +36,13 @@ class ModuleStatus(WireEnum):
     PARTIAL = "partial"
     UNAVAILABLE = "unavailable"
     FAILED = "failed"
+    NOT_RUN = "not_run"
+    NOT_APPLICABLE = "not_applicable"
+
+class SubjectType(WireEnum):
+    TRAINING_SAMPLE = "training_sample"
+    CANDIDATE_MODEL = "candidate_model"
+    INFERENCE = "inference"
 
 
 class TaskType(WireEnum):

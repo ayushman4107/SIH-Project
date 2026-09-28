@@ -1,3 +1,4 @@
+from visiops.core.enums import SubjectType
 """F2 architecture-matched per-layer weight-spectrum assurance."""
 
 from __future__ import annotations
@@ -135,7 +136,7 @@ class ModelIntegrityModule:
                 finding = Finding(
                     finding_type=FindingType.NON_FINITE_WEIGHT,
                     pillar=Pillar.F2,
-                    affected_asset=AssetLocator("model", candidate_id),
+                    affected_asset=AssetLocator(SubjectType.CANDIDATE_MODEL, candidate_id),
                     severity=Severity.CRITICAL,
                     raw_score=None,
                     decision_threshold="all analyzed weights finite",
@@ -266,7 +267,7 @@ class ModelIntegrityModule:
             finding = Finding(
                 finding_type=FindingType.WEIGHT_SPECTRAL_ANOMALY,
                 pillar=Pillar.F2,
-                affected_asset=AssetLocator("model", candidate_id, layer_name=worst_layer),
+                affected_asset=AssetLocator(SubjectType.CANDIDATE_MODEL, candidate_id, layer_name=worst_layer),
                 severity=Severity.HIGH if confidence >= 0.95 else Severity.MEDIUM,
                 raw_score=score,
                 decision_threshold=threshold,
@@ -396,3 +397,4 @@ class ModelIntegrityModule:
             calibration_stats,
             TENSOR_ELIGIBILITY,
         )
+

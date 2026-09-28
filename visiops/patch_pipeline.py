@@ -1,3 +1,4 @@
+from visiops.core.enums import SubjectType
 import re
 
 path = r"d:\SIH-Project-main\visiops\pipeline.py"
@@ -54,7 +55,7 @@ replacement = """            # --- SPECTRAL SUBBAND REPAIR (F1 Stretch Goal) ---
                                     Finding(
                                         finding_type=FindingType.POSSIBLE_DRIFT, # Reusing type for now, or define SPECTRAL_ANOMALY
                                         pillar=Pillar.F1,
-                                        affected_asset=AssetLocator("sample", sample.sample_id),
+                                        affected_asset=AssetLocator(SubjectType.TRAINING_SAMPLE, sample.sample_id),
                                         severity=severity,
                                         raw_score=metrics["flagged_fraction"],
                                         decision_threshold=0.001,
@@ -92,3 +93,4 @@ content = content.replace(target, replacement)
 
 with open(path, "w", encoding="utf-8") as f:
     f.write(content)
+
