@@ -103,8 +103,8 @@ Navigate to `http://localhost:5173` in your browser to view the live dashboard!
 To meet all SIH compliance criteria, please reference the following critical documents included in this repository:
 * **[COVERAGE_STATEMENT.md](docs/COVERAGE_STATEMENT.md)**: Details all supported attack classes, assumptions, and known black-box limitations.
 * **[MASTER_SPECIFICATION.md](docs/MASTER_SPECIFICATION.md)**: In-depth technical architecture document.
-* **Assurance-Report Schema**: See `schemas/assurance-report.schema.json` or `frontend/src/api/types.ts`.
-* **Reproducible Audit Log**: See `api/mock_data/example_audit_log.json`.
+* **Assurance-Report Schema**: See [`schemas/assurance-report.schema.json`](schemas/assurance-report.schema.json) or [`frontend/src/api/types.ts`](frontend/src/api/types.ts).
+* **Reproducible Audit Log**: See [`api/mock_data/example_audit_log.json`](api/mock_data/example_audit_log.json).
 
 ---
 
