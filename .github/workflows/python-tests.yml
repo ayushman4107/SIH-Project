@@ -25,11 +25,15 @@ jobs:
     - name: Run Tests
       run: |
         pytest tests/ > pytest_output.txt 2>&1 || true
+        git config --global user.name "github-actions"
+        git config --global user.email "actions@github.com"
+        git add pytest_output.txt
         if grep -q "failed" pytest_output.txt || grep -q "error" pytest_output.txt; then
-          git config --global user.name "github-actions"
-          git config --global user.email "actions@github.com"
-          git add pytest_output.txt
-          git commit -m "chore: save pytest output"
+          git commit -m "chore: save pytest output (FAILURE)"
           git push
           exit 1
+        else
+          git commit -m "chore: save pytest output (SUCCESS)"
+          git push
+          exit 0
         fi
