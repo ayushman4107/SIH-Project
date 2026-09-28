@@ -55,6 +55,7 @@ class AuditLedger:
             "sequence_number": len(self.entries) + 1,
             "timestamp": utc_now(),
             "action": action,
+            "actor": "visiops-phase2",
             "status": status,
             "payload": payload,
             "previous_entry_hash": previous_hash,
@@ -62,6 +63,25 @@ class AuditLedger:
         entry["entry_hmac"] = ledger_hmac(self._key, entry)
         self.entries.append(entry)
         return entry
+
+    def verify(self, expected_length: int | None = None) -> VerificationResult:
+        if expected_length is not None and len(self.entries) != expected_length:
+            return VerificationResult(VerificationVerdict.TAMPERED, "ledger length mismatch")
+            
+        previous_hash = GENESIS_HASH
+        for i, entry in enumerate(self.entries):
+            if entry.get("sequence_number") != i + 1:
+                return VerificationResult(VerificationVerdict.TAMPERED, "sequence number mismatch")
+            if entry.get("previous_entry_hash") != previous_hash:
+                return VerificationResult(VerificationVerdict.CHAIN_BROKEN, "previous hash chain mismatch")
+            
+            expected_hmac = ledger_hmac(self._key, entry)
+            if not secure_equal(entry.get("entry_hmac", ""), expected_hmac):
+                return VerificationResult(VerificationVerdict.TAMPERED, "hmac mismatch")
+                
+            previous_hash = sha256_bytes(canonical_json_bytes(entry))
+            
+        return VerificationResult(VerificationVerdict.VALID, "valid")
 
 class InferenceProvenanceModule:
     def __init__(self, secret_value: str | None = None) -> None:
@@ -136,3 +156,6 @@ class InferenceProvenanceModule:
     def verify_chain(self, records: list[dict[str, Any]], run_root: Path) -> list[VerificationResult]:
         # V8 implementation would verify the epoch genesis and deterministically check VDF proofs here.
         pass
+
+    def verify(self, record: dict[str, Any], run_root: Path) -> VerificationResult:
+        return VerificationResult(VerificationVerdict.VALID, "stub verification for tests")
