@@ -28,7 +28,7 @@ export default function Sidebar() {
   return (
     <aside className="w-64 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex flex-col h-screen overflow-y-auto">
       <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-        <h1 className="text-lg font-semibold flex items-center gap-2">
+        <h1 className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <Shield className="w-5 h-5 text-purple-600" />
           VisiOps Assurance
         </h1>
