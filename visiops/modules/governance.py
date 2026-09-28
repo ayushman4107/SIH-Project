@@ -79,7 +79,7 @@ class GovernanceModule:
         ]
         limitations.extend(additional_limitations or [])
         return {
-            "schema_version": "1.0",
+            "schema_version": "2.0",
             "report_id": report_id,
             "implemented_checks": list(
                 dict.fromkeys(static_manifest.get("implemented_checks", []))
@@ -159,7 +159,7 @@ class GovernanceModule:
             }
         )
         manifest = {
-            "schema_version": "1.0",
+            "schema_version": "2.0",
             "report_id": report_id,
             "created_at": utc_now(),
             "artifacts": artifacts,
@@ -203,7 +203,7 @@ class GovernanceModule:
         )
         atomic_write_json(staging / "coverage_statement.json", coverage)
         report = {
-            "schema_version": "1.0",
+            "schema_version": "2.0",
             "report_id": report_id,
             "run_timestamp": utc_now(),
             "framework_version": __version__,

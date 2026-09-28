@@ -48,7 +48,7 @@ class AuditLedger:
         self._key = key
         self.entries = list(entries or [])
 
-    def append(self, action: str, payload: dict[str, Any], *, status: str = "success") -> dict[str, Any]:
+    def append(self, action: str, payload: dict[str, Any], *, status: str = "success", subject_type: str | None = None, subject_id: str | None = None) -> dict[str, Any]:
         previous_hash = sha256_bytes(canonical_json_bytes(self.entries[-1])) if self.entries else GENESIS_HASH
         entry = {
             "entry_id": str(uuid4()),
@@ -56,6 +56,8 @@ class AuditLedger:
             "timestamp": utc_now(),
             "action": action,
             "actor": "visiops-phase2",
+            "subject_type": subject_type or "inference",
+            "subject_id": subject_id,
             "status": status,
             "payload": payload,
             "previous_entry_hash": previous_hash,

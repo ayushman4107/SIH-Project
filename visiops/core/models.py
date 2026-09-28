@@ -75,6 +75,20 @@ class Finding:
             raise ValueError("confidence must be within [0, 1]")
         if self.calibration_status != "uncalibrated":
             raise ValueError("Phase 2 confidence must be marked uncalibrated")
+        
+        # Enforce evidence keys natively per pillar
+        if self.pillar == Pillar.F1:
+            allowed_f1 = {"pairs", "percentile", "syndicate", "objectness", "global_5th", "mid_freq_energy", "bipartite_cost", "block_size"}
+            if not allowed_f1.intersection(self.evidence.keys()):
+                raise ValueError("F1 finding evidence missing required F1-specific keys")
+        elif self.pillar == Pillar.F2:
+            allowed_f2 = {"architecture_id", "worst_layer", "score", "snr", "divergence"}
+            if not allowed_f2.intersection(self.evidence.keys()):
+                raise ValueError("F2 finding evidence missing required F2-specific keys")
+        elif self.pillar == Pillar.F4:
+            allowed_f4 = {"copula_risk", "model_dependency", "fallback_active"}
+            if not allowed_f4.intersection(self.evidence.keys()):
+                raise ValueError("F4 finding evidence missing required F4-specific keys")
 
     def to_dict(self) -> dict[str, Any]:
         result = wire_value(asdict(self))

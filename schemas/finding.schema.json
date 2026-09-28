@@ -39,5 +39,59 @@
       }
     },
     "recommended_disposition": {"type": "string", "enum": ["accept", "review", "quarantine"]}
-  }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"pillar": {"const": "F1"}}},
+      "then": {
+        "properties": {
+          "evidence": {
+            "type": "object",
+            "anyOf": [
+              {"required": ["pairs"]},
+              {"required": ["percentile"]},
+              {"required": ["syndicate"]},
+              {"required": ["objectness"]},
+              {"required": ["global_5th"]},
+              {"required": ["mid_freq_energy"]},
+              {"required": ["bipartite_cost"]},
+              {"required": ["block_size"]}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"pillar": {"const": "F2"}}},
+      "then": {
+        "properties": {
+          "evidence": {
+            "type": "object",
+            "anyOf": [
+              {"required": ["architecture_id"]},
+              {"required": ["worst_layer"]},
+              {"required": ["score"]},
+              {"required": ["snr"]},
+              {"required": ["divergence"]}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"pillar": {"const": "F4"}}},
+      "then": {
+        "properties": {
+          "evidence": {
+            "type": "object",
+            "anyOf": [
+              {"required": ["copula_risk"]},
+              {"required": ["model_dependency"]},
+              {"required": ["fallback_active"]}
+            ]
+          }
+        }
+      }
+    }
+  ]
 }
