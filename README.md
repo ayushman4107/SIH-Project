@@ -19,45 +19,56 @@
 
 In an era of deep learning supply chain vulnerabilities and massive open-source model repositories, relying on simple evaluation metrics (like accuracy or basic checksums) is fundamentally insecure. **VisiOps** elevates AI security from heuristic guesswork to absolute mathematical certainty.
 
-VisiOps is a state-of-the-art **Model Forensics and Data Assurance platform**. It acts as an orchestration layer around existing PyTorch or ONNX pipelines, securing them against adversarial attacks, data poisoning, distribution shifts, and IP theft.
+VisiOps is a state-of-the-art **Model Forensics, Data Assurance, and Visual Governance platform**. It acts as an orchestration layer around existing PyTorch or ONNX pipelines, securing them against adversarial attacks, data poisoning, distribution shifts, and IP theft.
 
 ---
 
-## 🎯 The 5 Pillars of VisiOps
+## 🎯 The 5 Pillars of VisiOps (Assurance v2)
 
-VisiOps implements rigorous mathematical verification through five core defense pillars, spanning the entire ML lifecycle:
+VisiOps implements rigorous mathematical verification through five core defense pillars, mapped precisely to the SIH Problem Statement requirements:
 
 ### 1️⃣ F1: Data Integrity & Spatial Consistency
 Secures the training dataset against subtle poisoning and manipulation before a model even begins training.
-* **Spatial Bounding-Box Consistency (FF6)**: Uses Context-Padded Depth Verification, Cross-Class Co-occurrence Modeling, and Block-Weighted Bipartite Matching to ensure bounding boxes actually contain legitimate objects. Defeats natural-object semantic triggers, background-edge spoofing, and empty-box attacks.
-* **Dataset Deduplication**: Applies perceptual hashing (pHash) and cosine similarity to prevent dataset clustering and duplicate injection attacks.
+* **Spatial Bounding-Box Consistency (Stage 1A)**: Uses Block-Weighted Bipartite Matching to ensure bounding boxes actually contain legitimate objects.
+* **High-Frequency Spectral Masking (Stage 1B)**: Conducts deep spectral frequency analysis to detect anomalous energy spikes injected by attackers via triggers.
 
 ### 2️⃣ F2: Model Integrity & Quantization Analysis
 Verifies the physical integrity of a model's weights to detect malicious tampering.
-* **Quantization Probe**: Safely maps FP32 weights to INT8 to extract their physical memory signature without triggering malicious execution code hidden in custom operators.
-* **Spectral Subband Repair**: Conducts deep spectral frequency analysis of weight matrices to detect anomalous energy spikes injected by attackers.
+* **Quantization-Aware Divergence Filter**: Safely maps FP32 reference behavior against the INT8 candidate to detect hidden backdoor executions masquerading as quantization drift.
+* **Behavioral Fingerprinting**: Analyzes internal gradient norms and layer activations to flag structural tampering.
 
 ### 3️⃣ F3: Forward Provenance & Cryptographic Traceability
 Ensures the model running in production is the exact mathematical entity signed and authorized during testing.
-* **Proof of Sequential Work (PoSW)**: Prevents Man-in-the-Middle (MitM) model swapping in deployment environments by forcing execution of verified sequential proofs.
+* **Cryptographic Ledger**: Hashes raw inputs, preprocessing pipelines, and model digests into an immutable `audit_seq`. 
+* **Verifiable Delay Functions (VDF)**: Ensures inference records cannot be altered or replayed post-hoc.
 
 ### 4️⃣ F4: Distribution Shift & Gradient-Norm Spoofing Defense
 Monitors incoming data streams at inference time to detect out-of-distribution (OOD) adversarial examples.
-* **Vector-Jacobian Product (VJP) Emulation (FF5)**: Uses functional autodiff (`torch.func.vjp`) to extract exact penultimate gradients without triggering corrupted global autograd states.
-* **Copula Coherence Fusion**: Fuses Mahalanobis distance, Entropy, Energy, and Gradient Norm into a single statistical distribution to catch adversarial inputs spoofing standard logits.
+* **Multi-Modal Drift Detection**: Fuses Logit Energy, Entropy, Mahalanobis Distance, and Internal Gradient Norms (`grad_h_norm`) to accurately calculate a unified `risk_score` for operational drift.
 
-### 5️⃣ F5: Anti-Distillation Behavioral Fingerprinting
-Protects corporate Intellectual Property by detecting unauthorized model theft.
-* **Behavioral Fingerprinting**: Implants invisible, mathematically robust fingerprints into the model's decision boundary. If an attacker uses the VisiOps-protected model to train a stolen "student" model (Knowledge Distillation), VisiOps can forensically prove the theft.
+### 5️⃣ F5: Analyst-Facing Governance
+The final human-in-the-loop validation layer.
+* **Final Disposition**: Aggregates all flags into an actionable `ACCEPT`, `REVIEW`, or `QUARANTINE` disposition.
+* **Tamper-Evident Audit Trail**: Logs analyst decisions and specific execution limitations.
+
+---
+
+## 💻 The VisiOps Dashboard (New in v2.0)
+
+We have engineered a stunning, dark-mode ready **React Dashboard** (powered by Vite & Tailwind CSS) featuring premium glassmorphism aesthetics. This UI allows security analysts to actively monitor real-time Assurance Reports generated by the Python backend.
+
+### Key Features:
+* **Dynamic Pillar Navigation**: Click through F1 to F5 to review isolated forensic data.
+* **Real-time API Integration**: Fetches standardized V2 JSON schema reports directly from the FastAPI backend.
+* **Visual Cryptographic Proofs**: See live hashes and VDF chain statuses validating your model pipeline.
 
 ---
 
 ## ⚙️ Quick Start
 
-VisiOps requires zero modification to your model architecture.
+VisiOps requires zero modification to your model architecture and operates entirely offline for air-gapped environments.
 
-### Installation
-
+### 1. Backend API Installation
 ```bash
 # Clone the repository
 git clone https://github.com/ayushman4107/SIH-Project.git
@@ -65,38 +76,35 @@ cd SIH-Project
 
 # Create a virtual environment
 python -m venv .venv
-source .venv/bin/activate  # On Windows use: .venv\\Scripts\\activate
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
 
-# Install dependencies
+# Install dependencies and start the FastAPI Server
 pip install -r requirements.txt
-pip install -e .
+uvicorn api.main:app --port 8000
 ```
 
-### Running an Assurance Scan
+### 2. Frontend Dashboard Setup
+In a new terminal window:
+```bash
+cd frontend
 
-See the `examples/` directory for full usage, or run a quick scan on your dataset:
+# Install Node dependencies
+npm install
 
-```python
-import asyncio
-from visiops.pipeline import AssurancePipeline
-from visiops.adapters.datasets import YOLOAdapter
-
-async def main():
-    pipeline = AssurancePipeline()
-    dataset = YOLOAdapter(root_dir="./mock_dataset")
-    
-    print("🛡️ Running VisiOps F1 Spatial Consistency Engine...")
-    report = await pipeline.verify_dataset(dataset)
-    print(report.model_dump_json(indent=2))
-
-asyncio.run(main())
+# Start the Vite Dev Server
+npm run dev
 ```
+Navigate to `http://localhost:5173` in your browser to view the live dashboard!
 
 ---
 
-## 📊 Outputs & Assurance Reports
+## 📜 SIH Submission Artifacts
 
-VisiOps doesn't just block attacks; it generates irrefutable mathematical proof. Every scan produces a **VisiOps Assurance Report** (standardized JSON). This report logs every statistical outlier, every cryptographic verification step, and every disposed finding, serving as a legally sound audit trail for AI compliance and security governance.
+To meet all SIH compliance criteria, please reference the following critical documents included in this repository:
+* **[COVERAGE_STATEMENT.md](COVERAGE_STATEMENT.md)**: Details all supported attack classes, assumptions, and known black-box limitations.
+* **[MASTER_SPECIFICATION.md](MASTER_SPECIFICATION.md)**: In-depth technical architecture document.
+* **Assurance-Report Schema**: See `schemas/assurance-report.schema.json` or `frontend/src/api/types.ts`.
+* **Reproducible Audit Log**: See `api/mock_data/example_audit_log.json`.
 
 ---
 
