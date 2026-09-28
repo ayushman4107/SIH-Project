@@ -81,7 +81,7 @@ def compute_functional_vjp_gradnorm(
     K = P.shape[1]
     
     # 
-abla_Z L_{KL} = P \odot (\log(K \cdot P) + 1 - \sum_j P_j \log(K \cdot P_j))
+    # abla_Z L_{KL} = P \odot (\log(K \cdot P) + 1 - \sum_j P_j \log(K \cdot P_j))
     # For numerical stability:
     log_K_P = np.log(np.maximum(K * P, 1e-12))
     sum_P_log_K_P = np.sum(P * log_K_P, axis=1, keepdims=True)
