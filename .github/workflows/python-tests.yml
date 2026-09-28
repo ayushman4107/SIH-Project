@@ -22,4 +22,12 @@ jobs:
         pip install -e .
     - name: Run Tests
       run: |
-        pytest tests/
+        pytest tests/ > pytest_output.txt 2>&1 || true
+        if grep -q "failed" pytest_output.txt || grep -q "error" pytest_output.txt; then
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add pytest_output.txt
+          git commit -m "chore: save pytest output"
+          git push
+          exit 1
+        fi
