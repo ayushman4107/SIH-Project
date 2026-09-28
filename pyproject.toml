@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sentinel-cv-assurance"
+name = "visiops-cv-assurance"
 version = "0.1.0"
 description = "Offline computer-vision integrity assurance prototype for SIH 26228"
 readme = "README.md"
@@ -23,10 +23,10 @@ dependencies = [
 ]
 
 [project.scripts]
-sentinel = "sentinel.pipeline:main"
+visiops = "visiops.pipeline:main"
 
 [tool.setuptools.packages.find]
-include = ["sentinel*"]
+include = ["visiops*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
