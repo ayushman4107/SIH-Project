@@ -75,7 +75,9 @@ class AuditLedger:
             if entry.get("previous_entry_hash") != previous_hash:
                 return VerificationResult(VerificationVerdict.CHAIN_BROKEN, "previous hash chain mismatch")
             
-            expected_hmac = ledger_hmac(self._key, entry)
+            entry_without_hmac = dict(entry)
+            entry_without_hmac.pop("entry_hmac", None)
+            expected_hmac = ledger_hmac(self._key, entry_without_hmac)
             if not secure_equal(entry.get("entry_hmac", ""), expected_hmac):
                 return VerificationResult(VerificationVerdict.TAMPERED, "hmac mismatch")
                 
