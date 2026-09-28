@@ -1,7 +1,7 @@
 export interface AssuranceReport {
   schema_version: string;
   case_id: string;
-  subject_type: 'TRAINING_SAMPLE' | 'CANDIDATE_MODEL' | 'INFERENCE';
+  subject_type: 'TRAINING_SAMPLE' | 'CANDIDATE_MODEL' | 'INFERENCE' | 'HYBRID_DEMO';
   sample_id: string | null;
   request_id: string | null;
   dataset_version: string | null;
