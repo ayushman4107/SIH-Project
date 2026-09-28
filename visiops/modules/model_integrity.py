@@ -1,7 +1,7 @@
-from visiops.core.enums import SubjectType
 """F2 architecture-matched per-layer weight-spectrum assurance."""
 
 from __future__ import annotations
+from visiops.core.enums import SubjectType
 
 from dataclasses import dataclass
 from typing import Any

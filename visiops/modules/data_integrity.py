@@ -1,7 +1,7 @@
-from visiops.core.enums import SubjectType
 """F1 label, duplicate, outlier, and source-concentration assurance."""
 
 from __future__ import annotations
+from visiops.core.enums import SubjectType
 
 from collections import defaultdict, deque
 from dataclasses import dataclass

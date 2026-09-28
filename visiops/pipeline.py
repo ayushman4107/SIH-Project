@@ -1,7 +1,7 @@
-from visiops.core.enums import SubjectType
 """Single-process F1 -> F2 -> F3 -> F4 -> F5 orchestration."""
 
 from __future__ import annotations
+from visiops.core.enums import SubjectType
 
 import argparse
 import json

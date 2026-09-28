@@ -1,7 +1,7 @@
-from visiops.core.enums import SubjectType
 """FF6 V8: Spatial Bounding-Box Consistency Anchor."""
 
 from __future__ import annotations
+from visiops.core.enums import SubjectType
 
 import math
 from dataclasses import dataclass

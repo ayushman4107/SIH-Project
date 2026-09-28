@@ -1,7 +1,7 @@
-from visiops.core.enums import SubjectType
 """FF5 V8: Gradient-Norm Spoofing Defense with Beta-Divergence, VJP, and Isolation Forests."""
 
 from __future__ import annotations
+from visiops.core.enums import SubjectType
 
 from dataclasses import dataclass
 from typing import Any
