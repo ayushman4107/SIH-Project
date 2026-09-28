@@ -1,0 +1,39 @@
+
+==================================== ERRORS ====================================
+_______________ ERROR collecting tests/unit/test_glob_safety.py ________________
+ImportError while importing test module '/home/runner/work/SIH-Project/SIH-Project/tests/unit/test_glob_safety.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/unit/test_glob_safety.py:8: in <module>
+    from visiops.pipeline import VisiopsPipeline
+visiops/pipeline.py:29: in <module>
+    from visiops.modules.model_integrity import ModelIntegrityModule
+visiops/modules/model_integrity.py:21: in <module>
+    from visiops.modules.quantization_probe.contracts import QuantizationAssessment, Stage2AResult, Stage2BResult
+visiops/modules/quantization_probe/__init__.py:9: in <module>
+    from .onnx_probe import ONNXQuantizationProbe, run_stage_2b
+visiops/modules/quantization_probe/onnx_probe.py:5: in <module>
+    import onnxruntime as ort
+E   ModuleNotFoundError: No module named 'onnxruntime'
+_____________ ERROR collecting tests/unit/test_model_integrity.py ______________
+ImportError while importing test module '/home/runner/work/SIH-Project/SIH-Project/tests/unit/test_model_integrity.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/unit/test_model_integrity.py:7: in <module>
+    from visiops.modules.model_integrity import (
+visiops/modules/model_integrity.py:23: in <module>
+    from visiops.modules.quantization_probe.onnx_probe import ONNXQuantizationProbe, run_stage_2b
+visiops/modules/quantization_probe/__init__.py:9: in <module>
+    from .onnx_probe import ONNXQuantizationProbe, run_stage_2b
+visiops/modules/quantization_probe/onnx_probe.py:5: in <module>
+    import onnxruntime as ort
+E   ModuleNotFoundError: No module named 'onnxruntime'
+=========================== short test summary info ============================
+ERROR tests/unit/test_glob_safety.py
+ERROR tests/unit/test_model_integrity.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
+2 errors in 2.23s
