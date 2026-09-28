@@ -22,12 +22,12 @@ export default function Sidebar() {
     { id: 'model-integrity', label: 'F2: Model Integrity', icon: GitMerge },
     { id: 'ledger', label: 'F3: Provenance', icon: ListChecks },
     { id: 'distribution-shift', label: 'F4: Dist. Shift', icon: AlertTriangle },
-    { id: 'coverage', label: 'F5: Coverage', icon: FileText },
+    { id: 'governance', label: 'F5: Governance', icon: FileText },
   ];
 
   return (
-    <aside className="w-64 border-r border-border bg-gray-50 flex flex-col h-screen overflow-y-auto">
-      <div className="p-4 border-b border-border">
+    <aside className="w-64 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex flex-col h-screen overflow-y-auto">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-800">
         <h1 className="text-lg font-semibold flex items-center gap-2">
           <Shield className="w-5 h-5 text-purple-600" />
           VisiOps Assurance
@@ -46,7 +46,7 @@ export default function Sidebar() {
               <NavLink 
                 to={`/report/${runId}`}
                 className={({ isActive }) => 
-                  `block px-3 py-2 text-sm rounded-md truncate ${isActive || reportId === runId ? 'bg-purple-100 text-purple-900 font-medium' : 'text-gray-700 hover:bg-gray-200'}`
+                  `block px-3 py-2 text-sm rounded-md truncate ${isActive || reportId === runId ? 'bg-purple-100 text-purple-900 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'}`
                 }
                 title={runId}
               >
@@ -66,7 +66,7 @@ export default function Sidebar() {
                   to={`/report/${reportId}${item.id ? `/${item.id}` : ''}`}
                   end={item.id === ''}
                   className={({ isActive }) => 
-                    `flex items-center gap-2 px-3 py-2 text-sm rounded-md ${isActive ? 'bg-white shadow-sm font-medium text-purple-700 border border-border' : 'text-gray-700 hover:bg-gray-200'}`
+                    `flex items-center gap-2 px-3 py-2 text-sm rounded-md ${isActive ? 'bg-white dark:bg-gray-800 shadow-sm font-medium text-purple-700 border border-gray-200 dark:border-gray-800' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'}`
                   }
                 >
                   <item.icon className="w-4 h-4" />

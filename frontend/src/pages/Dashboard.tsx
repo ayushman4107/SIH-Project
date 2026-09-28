@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { getReport } from '../api/client';
 import type { AssuranceReport } from '../api/types';
-import DispositionBadge from '../components/DispositionBadge';
-import StatCard from '../components/StatCard';
 import {
-  Database, GitMerge, ListChecks, AlertTriangle, FileText,
-  Calendar, Box, Tag, Users, Network, Cpu,
+  Database, GitMerge, ListChecks, AlertTriangle,
+  Box, Tag, Info
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -25,227 +24,154 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, [reportId]);
 
-  if (loading) return <div className="text-muted text-center py-12">Loading report...</div>;
+  if (loading) return <div className="text-gray-500 text-center py-12 animate-pulse font-medium text-lg">Loading V2 Assurance Report...</div>;
   if (error) return <div className="text-red-500 text-center py-12">Error: {error}</div>;
-  if (!report) return <div className="text-muted text-center py-12">Report not found</div>;
+  if (!report) return <div className="text-gray-500 text-center py-12">Report not found</div>;
 
-  const f1 = report.pillars.F1_data_integrity;
-  const f2 = report.pillars.F2_model_integrity;
-  const f3 = report.pillars.F3_inference_provenance;
-  const f4 = report.pillars.F4_distribution_shift;
-  const sybil = f1.sybil_collusion;
-  const projector = f4.evidence.synthetic_projector;
-  const activationClustering = f2.evidence.activation_clustering;
+  const f1 = report.F1_data_integrity || {} as any;
+  const f2 = report.F2_model_integrity || {} as any;
+  const f3 = report.F3_inference_provenance || {} as any;
+  const f4 = report.F4_shift_assessment || {} as any;
+  const f5 = report.F5_governance || {} as any;
 
-  const dispositionColors: Record<string, string> = {
-    accept: 'border-l-emerald-500',
-    review: 'border-l-amber-400',
-    quarantine: 'border-l-red-500',
-    inconclusive: 'border-l-gray-400',
-  };
+  const dispositionColor = f5?.action === 'ACCEPT' ? 'bg-green-500' : f5.action === 'REVIEW' ? 'bg-amber-500' : 'bg-red-500';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in pb-12">
       {/* Header */}
-      <div className="bg-white border border-border rounded-xl p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+      <div className="bg-white/50 dark:bg-gray-800/80 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-8 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight mb-2">Assurance Report</h1>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted">
-              <span className="flex items-center gap-1"><Tag className="w-4 h-4" /> {report.report_metadata.report_id}</span>
-              <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> {new Date(report.report_metadata.timestamp).toLocaleString()}</span>
-              <span className="flex items-center gap-1"><Box className="w-4 h-4" /> {report.report_metadata.model_name}</span>
+            <h1 className="text-4xl font-black tracking-tight mb-3 text-transparent bg-clip-text bg-gradient-to-r from-gray-800 to-gray-500 dark:from-white dark:to-gray-400">
+              Assurance Report
+            </h1>
+            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400 font-medium">
+              <span className="flex items-center gap-1.5"><Tag className="w-4 h-4 text-indigo-400" /> Case ID: {report.case_id}</span>
+              <span className="flex items-center gap-1.5"><Box className="w-4 h-4 text-emerald-400" /> Subject Type: {report.subject_type?.replace(/_/g, ' ')}</span>
+              <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">Schema v{report.schema_version}</span>
             </div>
           </div>
           <div className="flex flex-col items-end">
-            <DispositionBadge disposition={report.disposition.overall} size="lg" className="mb-2 shadow-sm" />
-          </div>
-        </div>
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
-          <p className="text-gray-800 text-sm leading-relaxed">{report.disposition.reasoning}</p>
-        </div>
-      </div>
-
-      {/* Alert banners for new critical detections */}
-      {sybil && sybil.syndicates.length > 0 && (
-        <div className={`flex items-start gap-3 p-4 rounded-lg border-l-4 bg-red-50 border-red-400 border border-red-200 shadow-sm`}>
-          <Network className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="text-sm font-bold text-red-900 mb-1">
-              Sybil Collusion Detected — {sybil.syndicates.length} Syndicate{sybil.syndicates.length > 1 ? 's' : ''}
-            </h3>
-            <p className="text-xs text-red-700">
-              {sybil.syndicates.map(s => s.members.join(' + ')).join('; ')} — coordinated poisoning suspected.
-              Confidence: {(sybil.syndicates[0].calibrated_confidence * 100).toFixed(1)}%.
-              See F1 Findings for details.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {activationClustering && activationClustering.suspicious_classes.length > 0 && (
-        <div className="flex items-start gap-3 p-4 rounded-lg border-l-4 bg-amber-50 border-amber-400 border border-amber-200 shadow-sm">
-          <Cpu className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="text-sm font-bold text-amber-900 mb-1">
-              Activation Clustering Anomaly — Class{activationClustering.suspicious_classes.length > 1 ? 'es' : ''} {activationClustering.suspicious_classes.join(', ')}
-            </h3>
-            <p className="text-xs text-amber-700">
-              Bimodal split in penultimate layer suggests a targeted backdoor. See F2 Model Integrity for full analysis.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Pillar Cards */}
-      <h2 className="text-xl font-semibold mb-4 mt-8">Assurance Pillars</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard
-          title="F1: Data Integrity"
-          value={f1.total_findings}
-          subtitle={`Status: ${f1.status}`}
-          icon={<Database />}
-          onClick={() => navigate(`/report/${reportId}/findings`)}
-        />
-        <StatCard
-          title="F2: Model Integrity"
-          value={`${(f2.confidence * 100).toFixed(1)}%`}
-          subtitle={`Status: ${f2.status}`}
-          icon={<GitMerge />}
-          onClick={() => navigate(`/report/${reportId}/model-integrity`)}
-        />
-        <StatCard
-          title="F3: Provenance"
-          value={f3.hmac_status}
-          subtitle={`Status: ${f3.status}`}
-          icon={<ListChecks />}
-          onClick={() => navigate(`/report/${reportId}/ledger`)}
-        />
-        <StatCard
-          title="F4: Distribution Shift"
-          value={f4.ood_score.toFixed(3)}
-          subtitle={`Status: ${f4.status}`}
-          icon={<AlertTriangle />}
-          onClick={() => navigate(`/report/${reportId}/distribution-shift`)}
-        />
-        <StatCard
-          title="F5: Coverage"
-          value={report.coverage_statement.supported_attacks.length}
-          subtitle={`Framework: ${report.coverage_statement.framework} v${report.coverage_statement.version}`}
-          icon={<FileText />}
-          onClick={() => navigate(`/report/${reportId}/coverage`)}
-        />
-      </div>
-
-      {/* Contributor Risk Summary */}
-      {f1.contributor_risk_aggregation.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5 text-purple-600" />
-            Contributor Risk Summary
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {f1.contributor_risk_aggregation.map(c => {
-              const disposition = c.recommendation as string;
-              const borderColor = dispositionColors[disposition] ?? 'border-l-gray-400';
-              const riskColor = c.risk_score >= 0.9 ? 'text-red-600' : c.risk_score >= 0.75 ? 'text-amber-600' : 'text-emerald-600';
-              return (
-                <div
-                  key={c.source_id}
-                  className={`bg-white border border-border rounded-lg p-4 shadow-sm border-l-4 ${borderColor}`}
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <span className="font-bold text-gray-900">{c.source_id}</span>
-                    <DispositionBadge disposition={c.recommendation as any} size="sm" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-xs text-gray-500 block">Contributed</span>
-                      <span className="font-medium">{c.samples_contributed.toLocaleString()} samples</span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-gray-500 block">Problematic</span>
-                      <span className="font-medium text-red-600">{c.problematic_samples}</span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-xs text-gray-500 block mb-1">Risk Score</span>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-100 rounded-full h-1.5">
-                          <div
-                            className={`h-1.5 rounded-full ${c.risk_score >= 0.9 ? 'bg-red-500' : c.risk_score >= 0.75 ? 'bg-amber-400' : 'bg-emerald-500'}`}
-                            style={{ width: `${c.risk_score * 100}%` }}
-                          />
-                        </div>
-                        <span className={`text-sm font-bold ${riskColor}`}>{(c.risk_score * 100).toFixed(0)}%</span>
-                      </div>
-                    </div>
-                  </div>
-                  {sybil && sybil.syndicates.some(s => s.members.includes(c.source_id)) && (
-                    <div className="mt-2 flex items-center gap-1 text-xs text-red-700 font-semibold bg-red-50 border border-red-200 rounded px-2 py-1">
-                      <Network className="w-3 h-3" /> Syndicate member
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Synthetic Projector quick summary */}
-      {projector && (
-        <div className="mt-4">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-amber-500" />
-            Synthetic Drift Analysis (F4)
-          </h2>
-          <div className={`bg-white border border-border rounded-lg p-5 shadow-sm border-l-4 ${
-            projector.finding_type === 'ORTHOGONAL_DRIFT_ANOMALY' ? 'border-l-amber-400' : 'border-l-emerald-400'
-          }`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <span className={`inline-block text-xs font-bold uppercase px-2 py-1 rounded mb-1 ${
-                  projector.finding_type === 'ORTHOGONAL_DRIFT_ANOMALY'
-                    ? 'bg-amber-100 text-amber-800'
-                    : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  {projector.finding_type.replace(/_/g, ' ')}
-                </span>
-                <p className="text-sm text-gray-600 mt-1">{projector.interpretation}</p>
-              </div>
-              <div className="flex gap-6 text-center flex-shrink-0">
-                <div>
-                  <div className="text-2xl font-bold text-gray-900">{(projector.orthogonality_ratio * 100).toFixed(1)}%</div>
-                  <div className="text-xs text-gray-500">Orthogonality</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-gray-900">{projector.total_displacement.toFixed(2)}</div>
-                  <div className="text-xs text-gray-500">Displacement</div>
-                </div>
-              </div>
+            <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">Final Action</span>
+            <div className={`px-6 py-2 rounded-lg font-bold text-white shadow-lg ${dispositionColor}`}>
+              {f5.action}
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* F5 Governance Summary */}
-      <div className="mt-4">
-        <h2 className="text-xl font-semibold mb-4">F5: Governance Aggregation</h2>
-        <div className="bg-white border border-border rounded-lg p-5 shadow-sm">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            {report.pillars.F5_aggregation_and_governance.pillar_dispositions.map(p => (
-              <div key={p.pillar} className="text-center p-3 bg-gray-50 rounded-lg border border-gray-100">
-                <div className="text-xs font-semibold text-gray-500 uppercase mb-1">{p.pillar}</div>
-                <DispositionBadge disposition={p.disposition} size="sm" className="justify-center" />
-                <div className="text-xs text-gray-400 mt-1">{p.count} findings</div>
-              </div>
-            ))}
+      {/* Pillar Cards Grid */}
+      <h2 className="text-2xl font-extrabold mb-6 mt-10 text-gray-800 dark:text-gray-100 px-2">Assurance Pillars</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-2">
+        
+        {/* F1 Card */}
+        <div 
+          onClick={() => navigate(`/report/${reportId}/findings`)}
+          className="group cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl group-hover:scale-110 transition-transform"><Database className="w-6 h-6" /></div>
+            <h3 className="font-bold text-gray-900 dark:text-white text-lg">F1: Data Integrity</h3>
           </div>
-          <p className="text-sm text-gray-700 leading-relaxed italic border-t border-gray-100 pt-4">
-            {report.pillars.F5_aggregation_and_governance.analyst_summary}
-          </p>
+          <div className="space-y-2">
+             <div className="flex justify-between text-sm">
+                 <span className="text-gray-500 dark:text-gray-400">Box Status</span>
+                 <span className="font-semibold text-gray-700 dark:text-gray-300">{f1.box_status}</span>
+             </div>
+             <div className="flex justify-between text-sm">
+                 <span className="text-gray-500 dark:text-gray-400">Spectral Status</span>
+                 <span className="font-semibold text-gray-700 dark:text-gray-300">{f1.spectral_status}</span>
+             </div>
+          </div>
+        </div>
+
+        {/* F2 Card */}
+        <div 
+          onClick={() => navigate(`/report/${reportId}/model-integrity`)}
+          className="group cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl group-hover:scale-110 transition-transform"><GitMerge className="w-6 h-6" /></div>
+            <h3 className="font-bold text-gray-900 dark:text-white text-lg">F2: Model Integrity</h3>
+          </div>
+          <div className="space-y-2">
+             <div className="flex justify-between text-sm">
+                 <span className="text-gray-500 dark:text-gray-400">Behavioral</span>
+                 <span className="font-semibold text-gray-700 dark:text-gray-300">{f2.behavioral_status}</span>
+             </div>
+             <div className="flex justify-between text-sm">
+                 <span className="text-gray-500 dark:text-gray-400">Quantization</span>
+                 <span className="font-semibold text-gray-700 dark:text-gray-300">{f2.quantization_status?.replace(/_/g, ' ')}</span>
+             </div>
+          </div>
+        </div>
+
+        {/* F3 Card */}
+        <div 
+          onClick={() => navigate(`/report/${reportId}/ledger`)}
+          className="group cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl group-hover:scale-110 transition-transform"><ListChecks className="w-6 h-6" /></div>
+            <h3 className="font-bold text-gray-900 dark:text-white text-lg">F3: Provenance</h3>
+          </div>
+          <div className="space-y-2">
+             <div className="flex justify-between text-sm">
+                 <span className="text-gray-500 dark:text-gray-400">Chain Status</span>
+                 <span className="font-semibold text-gray-700 dark:text-gray-300">{f3.chain_status}</span>
+             </div>
+             <div className="flex justify-between text-sm">
+                 <span className="text-gray-500 dark:text-gray-400">VDF Status</span>
+                 <span className="font-semibold text-gray-700 dark:text-gray-300">{f3.vdf_status}</span>
+             </div>
+          </div>
+        </div>
+
+        {/* F4 Card */}
+        <div 
+          onClick={() => navigate(`/report/${reportId}/distribution-shift`)}
+          className="group cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl group-hover:scale-110 transition-transform"><AlertTriangle className="w-6 h-6" /></div>
+            <h3 className="font-bold text-gray-900 dark:text-white text-lg">F4: Dist. Shift</h3>
+          </div>
+          <div className="space-y-2">
+             <div className="flex justify-between text-sm">
+                 <span className="text-gray-500 dark:text-gray-400">Risk Score</span>
+                 <span className="font-semibold text-gray-700 dark:text-gray-300">{f4.risk_score?.toFixed(2) ?? 'N/A'}</span>
+             </div>
+             <div className="flex justify-between text-sm">
+                 <span className="text-gray-500 dark:text-gray-400">Grad Response</span>
+                 <span className="font-semibold text-gray-700 dark:text-gray-300">{f4.grad_h_norm?.toFixed(2) ?? 'N/A'}</span>
+             </div>
+          </div>
         </div>
       </div>
+
+      {/* F5 Limitations and Notes */}
+      {f5.limitation_notes?.length > 0 && (
+          <div className="mt-10 px-2">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-800 dark:text-gray-100">
+                  <Info className="w-5 h-5 text-gray-500" />
+                  Governance Limitations & Analyst Notes
+              </h2>
+              <div className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                  <ul className="list-disc pl-5 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                      {f5.limitation_notes?.map((note, idx) => (
+                          <li key={idx}>{note}</li>
+                      ))}
+                  </ul>
+                  {f5.analyst_decision && (
+                      <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                          <span className="font-bold text-gray-800 dark:text-gray-200 block mb-1">Analyst Decision History:</span>
+                          <span className="text-sm italic text-gray-600 dark:text-gray-400">{f5.analyst_decision}</span>
+                      </div>
+                  )}
+              </div>
+          </div>
+      )}
     </div>
   );
 }
+

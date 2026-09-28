@@ -1,248 +1,123 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { getLedger, getReport } from '../api/client';
-import type { AuditLog, AssuranceReport } from '../api/types';
-import VerificationStatus from '../components/VerificationStatus';
-import { Clock, Key, ShieldAlert, Lock, Shield, Zap } from 'lucide-react';
+import { getReport } from "../api/client";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+
+import type { AssuranceReport } from '../api/types';
 
 export default function Ledger() {
+
   const { reportId } = useParams();
-  const [ledger, setLedger] = useState<AuditLog | null>(null);
   const [report, setReport] = useState<AssuranceReport | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!reportId) return;
-    setLoading(true);
-    Promise.all([getLedger(reportId), getReport(reportId)])
-      .then(([ledgerData, reportData]) => {
-        setLedger(ledgerData);
-        setReport(reportData);
-      })
-      .catch(err => setError(err.message))
+    getReport(reportId)
+      .then(data => setReport(data))
+      .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, [reportId]);
 
-  if (loading) return <div className="text-muted text-center py-12">Loading ledger...</div>;
-  if (error) return <div className="text-red-500 text-center py-12">Error: {error}</div>;
-  if (!ledger) return <div className="text-muted text-center py-12">Ledger not found</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500">Loading data...</div>;
 
-  const { ledger_metadata, verification_summary, chain_verification, hmac_verification } = ledger;
-  const ratchetScheme = report?.pillars.F3_inference_provenance?.ratchet_scheme;
+  if (!report || report.subject_type !== 'INFERENCE' && report.subject_type !== 'HYBRID_DEMO') {
+    return (
+      <div className="p-8 text-center text-gray-500">
+        <h2 className="text-2xl font-bold mb-4 text-gray-700 dark:text-gray-200">F3: Inference Provenance</h2>
+        <p>No inference data available for this report.</p>
+      </div>
+    );
+  }
+
+  const f3 = report.F3_inference_provenance || {} as any;
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight mb-1">F3: Inference Provenance</h1>
-          <p className="text-sm text-muted flex items-center gap-2">
-            <Key className="w-4 h-4" /> Scheme: {ledger_metadata.hmac_scheme}
-            <span className="text-gray-300">|</span>
-            <Clock className="w-4 h-4" /> Created: {new Date(ledger_metadata.created).toLocaleString()}
-          </p>
-        </div>
-        <div className="flex flex-col items-end">
-          <VerificationStatus
-            status={verification_summary.status}
-            hasRisk={verification_summary.tail_truncation_risk}
-            riskMessage="The ledger was not verified against an independent length. Tail truncation (missing final entries) cannot be ruled out."
-            className="items-end"
-          />
-        </div>
-      </div>
+    <div className="p-6 max-w-7xl mx-auto space-y-8 animate-fade-in">
+      <header className="mb-8">
+        <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-2">
+          Inference Provenance
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Forward-Secure Temporal and Runtime Provenance Engine
+        </p>
+      </header>
 
-      {/* HKDF Ratchet Security Panel */}
-      {ratchetScheme && (
-        <section>
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <Lock className="w-5 h-5 text-purple-600" />
-            HKDF Ratchet Key Security
-          </h2>
-          <div className="bg-white border border-border rounded-lg p-5 shadow-sm border-l-4 border-l-purple-500">
-            <div className="flex flex-col sm:flex-row gap-6">
-              {/* Algorithm badge */}
-              <div className="flex flex-col items-center justify-center bg-purple-50 rounded-lg p-4 min-w-[140px] border border-purple-100">
-                <Zap className="w-8 h-8 text-purple-600 mb-2" />
-                <span className="text-xs font-bold text-purple-900 text-center">{ratchetScheme.algorithm}</span>
-                <span className="text-[10px] text-purple-600 mt-1">{ratchetScheme.ratchet_version}</span>
-              </div>
-
-              {/* Security properties */}
-              <div className="flex-1">
-                <p className="text-sm text-gray-700 mb-4">{ratchetScheme.description}</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium ${
-                    ratchetScheme.page_locked
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                      : 'bg-gray-50 border-gray-200 text-gray-500'
-                  }`}>
-                    <Lock className="w-4 h-4 flex-shrink-0" />
-                    <div>
-                      <div className="text-xs font-bold">Page-Locked Memory</div>
-                      <div className="text-[10px] opacity-70">VirtualLock (Windows)</div>
-                    </div>
-                    <span className="ml-auto">{ratchetScheme.page_locked ? '✓' : '✗'}</span>
-                  </div>
-
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium ${
-                    ratchetScheme.secure_zeroization
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                      : 'bg-gray-50 border-gray-200 text-gray-500'
-                  }`}>
-                    <Shield className="w-4 h-4 flex-shrink-0" />
-                    <div>
-                      <div className="text-xs font-bold">Secure Zeroization</div>
-                      <div className="text-[10px] opacity-70">RtlSecureZeroMemory</div>
-                    </div>
-                    <span className="ml-auto">{ratchetScheme.secure_zeroization ? '✓' : '✗'}</span>
-                  </div>
-
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium ${
-                    ratchetScheme.forward_secrecy
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                      : 'bg-gray-50 border-gray-200 text-gray-500'
-                  }`}>
-                    <Zap className="w-4 h-4 flex-shrink-0" />
-                    <div>
-                      <div className="text-xs font-bold">Forward Secrecy</div>
-                      <div className="text-[10px] opacity-70">Per-entry key ratchet</div>
-                    </div>
-                    <span className="ml-auto">{ratchetScheme.forward_secrecy ? '✓' : '✗'}</span>
-                  </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Verification Status Card */}
+        <div className="bg-white/10 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300">
+          <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-gray-100 flex items-center border-b border-gray-200 dark:border-gray-700 pb-3">
+            <svg className="w-6 h-6 mr-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            Verification Results
+          </h3>
+          
+          <div className="space-y-5">
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-900 border-l-4 border-indigo-500">
+                <div>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 block">Hash Chain Status</span>
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">{f3.chain_status}</span>
                 </div>
-
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-100 text-xs text-gray-600">
-                  <p>
-                    <span className="font-semibold">How it works:</span> After each HMAC-SHA256 signature, the key is
-                    ratcheted via HKDF: <code className="font-mono bg-gray-100 px-1 rounded">K<sub>n+1</sub> = HMAC-SHA256(K<sub>n</sub>, "sentinel-ratchet-v1" ∥ σ<sub>n</sub>)</code>.
-                    This ensures compromise of a derived key does not expose prior or future session keys.
-                    The key buffer is page-locked to prevent swap-file leakage and securely zeroed after use.
-                  </p>
+                <div className="text-right">
+                    <span className="text-sm text-gray-500 dark:text-gray-400 block">Audit Sequence</span>
+                    <span className="font-mono text-indigo-600 dark:text-indigo-400">#{f3.audit_seq || 'N/A'}</span>
                 </div>
-              </div>
+            </div>
+
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-900 border-l-4 border-indigo-500">
+                <div>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 block">VDF Proof Status</span>
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">{f3.vdf_status}</span>
+                </div>
+                <div className="text-right">
+                    <span className="text-sm text-gray-500 dark:text-gray-400 block">Checkpoint ID</span>
+                    <span className="font-mono text-xs text-gray-600 dark:text-gray-400">{f3.checkpoint_id || 'N/A'}</span>
+                </div>
+            </div>
+
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-900 border-l-4 border-indigo-500">
+                <div>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 block">Telemetry Bounds</span>
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">{f3.telemetry_status}</span>
+                </div>
+                <div className="text-right">
+                    <span className="text-sm text-gray-500 dark:text-gray-400 block">Local Clock Claim</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{new Date().toISOString()}</span>
+                </div>
             </div>
           </div>
-        </section>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white p-5 rounded-lg border border-border shadow-sm">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Chain Verification</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">Total Entries</span>
-              <span className="text-sm font-medium">{chain_verification.total_entries}</span>
-            </div>
-            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">Broken Chain</span>
-              <span className="text-sm font-medium">{chain_verification.tampering_checks.broken_chain ? 'Yes' : 'No'}</span>
-            </div>
-            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">Missing Entries</span>
-              <span className="text-sm font-medium">{chain_verification.tampering_checks.missing_entries ? 'Yes' : 'No'}</span>
-            </div>
-            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">Modified Hashes</span>
-              <span className="text-sm font-medium">{chain_verification.tampering_checks.modified_hashes ? 'Yes' : 'No'}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Overall Status</span>
-              <VerificationStatus status={chain_verification.tampering_checks.overall_status} />
-            </div>
+          
+          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm text-blue-800 dark:text-blue-300">
+              <strong>Note:</strong> Record authenticity confirms the log has not been tampered with. It does not independently verify the truthfulness of the recorded runtime or clock measurements.
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-lg border border-border shadow-sm">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">HMAC Verification</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">Entries Verified</span>
-              <span className="text-sm font-medium">{hmac_verification.entries_verified}</span>
+        {/* Cryptographic Digests Card */}
+        <div className="bg-white/10 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col">
+          <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-gray-100 flex items-center border-b border-gray-200 dark:border-gray-700 pb-3">
+            <svg className="w-6 h-6 mr-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+            Cryptographic Payload Binding
+          </h3>
+          
+          <div className="flex-1 space-y-4">
+            <div className="bg-gray-100 dark:bg-gray-900 rounded p-3">
+                <span className="text-xs font-semibold text-gray-500 uppercase block mb-1">Model ID</span>
+                <div className="font-mono text-sm text-gray-800 dark:text-gray-300 break-all">{report.model_id || 'UNKNOWN'}</div>
             </div>
-            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">Unsigned Entries</span>
-              <span className="text-sm font-medium">{hmac_verification.entries_unsigned}</span>
+            
+            <div className="bg-gray-100 dark:bg-gray-900 rounded p-3">
+                <span className="text-xs font-semibold text-gray-500 uppercase block mb-1">Raw Input Digest</span>
+                <div className="font-mono text-sm text-gray-800 dark:text-gray-300 break-all">{report.raw_input_digest || 'N/A'}</div>
             </div>
-            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">Fail Open Detected</span>
-              <span className="text-sm font-medium">{hmac_verification.fail_open_detected ? 'Yes' : 'No'}</span>
+
+            <div className="bg-gray-100 dark:bg-gray-900 rounded p-3">
+                <span className="text-xs font-semibold text-gray-500 uppercase block mb-1">Raw Output Digest</span>
+                <div className="font-mono text-sm text-gray-800 dark:text-gray-300 break-all">{f3.raw_output_digest || 'N/A'}</div>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Status</span>
-              <VerificationStatus status={hmac_verification.fail_open_detected ? 'fail_open' : 'verified'} />
+
+            <div className="bg-gray-100 dark:bg-gray-900 rounded p-3">
+                <span className="text-xs font-semibold text-gray-500 uppercase block mb-1">Record Hash</span>
+                <div className="font-mono text-sm text-gray-800 dark:text-gray-300 break-all">{f3.raw_record_hash || 'N/A'}</div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          Audit Timeline
-          {verification_summary.tail_truncation_risk && (
-            <ShieldAlert className="w-4 h-4 text-amber-500" aria-label="Tail truncation risk" />
-          )}
-        </h2>
-
-        <div className="relative border-l border-gray-200 ml-3 space-y-8 pb-4">
-          {ledger.ledger.map((entry) => {
-            const hmacResult = hmac_verification.verification_results.find(r => r.sequence === entry.sequence);
-            const chainResult = chain_verification.links.find(r => r.to_sequence === entry.sequence);
-
-            const isUnsigned = entry.status === 'UNSIGNED';
-            const hmacMatch = hmacResult?.match ?? false;
-
-            return (
-              <div key={entry.sequence} className="relative pl-6">
-                {/* Timeline dot */}
-                <span className={`absolute -left-[5px] top-1.5 w-[10px] h-[10px] rounded-full ring-4 ring-white ${
-                  isUnsigned ? 'bg-gray-300' : hmacMatch ? 'bg-green-500' : 'bg-red-500'
-                }`} />
-
-                <div className="bg-white border border-border rounded-lg p-4 shadow-sm">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-3">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="bg-gray-100 text-gray-600 text-xs font-mono px-2 py-0.5 rounded">Seq {entry.sequence}</span>
-                        <h4 className="text-sm font-bold text-gray-900">{entry.action}</h4>
-                      </div>
-                      <p className="text-xs text-gray-500">{new Date(entry.timestamp).toLocaleString()} ({entry.duration_seconds.toFixed(2)}s)</p>
-                    </div>
-                    <div>
-                      <VerificationStatus status={entry.status} className="!flex-row" />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2 text-xs font-mono mt-4 pt-3 border-t border-gray-100">
-                    <div className="flex flex-col">
-                      <span className="text-gray-400">Entry Hash</span>
-                      <span className="text-gray-700 truncate" title={entry.entry_hash}>{entry.entry_hash}</span>
-                    </div>
-                    {entry.sequence > 0 && (
-                      <div className="flex flex-col mt-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-400">Previous Hash</span>
-                          {chainResult && !chainResult.match && (
-                            <span className="text-red-500 font-bold">CHAIN BROKEN</span>
-                          )}
-                        </div>
-                        <span className="text-gray-700 truncate" title={entry.previous_entry_hash}>{entry.previous_entry_hash}</span>
-                      </div>
-                    )}
-                    <div className="flex flex-col mt-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-400">HMAC Signature</span>
-                        {hmacResult && !hmacResult.match && !isUnsigned && (
-                          <span className="text-red-500 font-bold">INVALID SIGNATURE</span>
-                        )}
-                      </div>
-                      <span className="text-gray-700 truncate" title={entry.hmac_sha256}>{entry.hmac_sha256 || 'N/A'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
     </div>

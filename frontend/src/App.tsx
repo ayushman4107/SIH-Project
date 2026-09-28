@@ -24,7 +24,7 @@ function App() {
           <Route path="ledger" element={<Ledger />} />
           <Route path="model-integrity" element={<ModelIntegrity />} />
           <Route path="distribution-shift" element={<DistShift />} />
-          <Route path="coverage" element={<Coverage />} />
+          <Route path="governance" element={<Coverage />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Route>
