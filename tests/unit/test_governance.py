@@ -31,7 +31,7 @@ def _finding(disposition: Disposition) -> Finding:
         confidence=0.95 if disposition is Disposition.QUARANTINE else 0.70,
         confidence_normalizer="fixture",
         human_readable_reason="fixture",
-        evidence={},
+        evidence={"percentile": 0.5},
         method=MethodIdentity("fixture", "1"),
         recommended_disposition=disposition,
     )

@@ -78,15 +78,15 @@ class Finding:
         
         # Enforce evidence keys natively per pillar
         if self.pillar == Pillar.F1:
-            allowed_f1 = {"pairs", "percentile", "syndicate", "objectness", "global_5th", "mid_freq_energy", "bipartite_cost", "block_size"}
+            allowed_f1 = {'provided_label', 'anomaly_rate', 'cosine_to_class_centroid', 'syndicate', 'pairs', 'dataset_rate_multiplier', 'sample_count', 'mid_freq_energy', 'global_5th', 'suggested_probability', 'fold', 'cosine_to_alternate_centroid', 'objectness', 'disposition', 'suggested_label', 'concentration_status', 'p_value', 'percentile', 'fraction_validation_hurt', 'source_id', 'provided_probability', 'concentration_report', 'bipartite_cost', 'anomaly_count', 'nearest_alternate_class', 'mean_influence_on_validation', 'block_size', 'nominal_class'}
             if not allowed_f1.intersection(self.evidence.keys()):
                 raise ValueError("F1 finding evidence missing required F1-specific keys")
         elif self.pillar == Pillar.F2:
-            allowed_f2 = {"architecture_id", "worst_layer", "score", "snr", "divergence"}
+            allowed_f2 = {'worst_layer', 'mismatch_reason', 'expected_shape', 'actual_shape', 'score_variance', 'flagged_percentile', 'outlier_count', 'snr', 'divergence', 'architecture_id', 'expected_layers', 'actual_layers', 'suspicious_operations', 'unexpected_injections', 'score'}
             if not allowed_f2.intersection(self.evidence.keys()):
                 raise ValueError("F2 finding evidence missing required F2-specific keys")
         elif self.pillar == Pillar.F4:
-            allowed_f4 = {"copula_risk", "model_dependency", "fallback_active"}
+            allowed_f4 = {'vjp_norm', 'reconstruction_error', 'copula_risk', 'isolation_score', 'beta_divergence', 'fallback_active', 'is_outlier', 'model_dependency'}
             if not allowed_f4.intersection(self.evidence.keys()):
                 raise ValueError("F4 finding evidence missing required F4-specific keys")
 

@@ -38,7 +38,7 @@ class ContractTests(unittest.TestCase):
             confidence=0.9,
             confidence_normalizer="cleanlab_inverse_quality_v1",
             human_readable_reason="fixture",
-            evidence={},
+            evidence={"percentile": 0.5},
             method=MethodIdentity("cleanlab_label_quality", "1"),
             recommended_disposition=Disposition.REVIEW,
         )
