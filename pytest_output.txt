@@ -1,427 +1,46 @@
-FFFF.........FF..........FF................FFFFF                         [100%]
+.FFF.........ss..........sF................sssss                         [100%]
 =================================== FAILURES ===================================
-__ test_unsigned_fail_open_finalizes_as_review_without_fake_audit_protection ___
-
-    def test_unsigned_fail_open_finalizes_as_review_without_fake_audit_protection() -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            model = root / "model.pt"
-            model.write_bytes(b"model")
-            stager = RunStager(root / "output", uuid4())
-            stager.create()
-            unsigned = Finding(
-                finding_type=FindingType.PROVENANCE_UNSIGNED,
-                pillar=Pillar.F3,
-                affected_asset=AssetLocator("inference_record", "record-1"),
-                severity=Severity.HIGH,
-                raw_score=None,
-                decision_threshold="signed",
-                confidence=0.70,
-                confidence_normalizer="unsigned_policy_v1",
-                human_readable_reason="Provenance key was unavailable.",
-                evidence={},
-                method=MethodIdentity("inference_hmac_binding", "1"),
-                recommended_disposition=Disposition.REVIEW,
-            )
-            assessments = {
-                "F1": ModuleAssessment(ModuleStatus.COMPLETED),
-                "F2": ModuleAssessment(ModuleStatus.UNAVAILABLE),
-                "F3": ModuleAssessment(ModuleStatus.COMPLETED, (unsigned,)),
-                "F4": ModuleAssessment(ModuleStatus.UNAVAILABLE),
-            }
-            result = GovernanceModule().finalize(
-                stager=stager,
-                assessments=assessments,
-                assets={"dataset": {}, "model": {}, "references": {}},
-                source_assessments=[],
-                shift_assessment=None,
-                coverage_manifest={
-                    "implemented_checks": ["inference_hmac_binding"],
-                    "unsupported_attack_classes": [],
-                },
-                validation_scope={
-                    "dataset": "fixture",
-                    "architectures": ["resnet18"],
-                    "sample_sizes": {"submitted": 1},
-                    "seeds": [42],
-                    "status": "partial",
-                },
-                model_path=model,
-                model_digest=sha256_file(model),
-                seed=42,
-                ledger=None,
-                additional_limitations=["Authenticated logging unavailable in this fixture."],
-                acceptance_gates={},
-            )
-            assert result.overall_disposition is Disposition.REVIEW
-            assert json.loads((result.run_dir / "audit_log.json").read_text()) == []
-            coverage = json.loads((result.run_dir / "coverage_statement.json").read_text())
-            assert any(
-                "Authenticated logging unavailable" in item for item in coverage["security_limitations"]
-            )
->           verification = verify_run(result.run_dir, "56" * 32)
-
-tests/integration/test_report_flow.py:73: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-run_dir = PosixPath('/tmp/tmpyy6sba40/output/runs/9ebe320f-226c-4b8b-8ef0-41260684e5ea')
-secret_value = '5656565656565656565656565656565656565656565656565656565656565656'
-
-    def verify_run(
-        run_dir: Path, secret_value: str | None, *, expected_ledger_length: int | None = None
-    ) -> RunVerification:
-        root = run_dir.resolve(strict=True)
-        registry = SchemaRegistry()
-        report = json.loads((root / "assurance_report.json").read_text(encoding="utf-8"))
-        coverage = json.loads((root / "coverage_statement.json").read_text(encoding="utf-8"))
-        manifest = json.loads((root / "run_manifest.json").read_text(encoding="utf-8"))
-        audit_entries = json.loads((root / "audit_log.json").read_text(encoding="utf-8"))
-        registry.validate("assurance_report", report)
-        registry.validate("coverage_statement", coverage)
-        registry.validate("run_manifest", manifest)
-        registry.validate("audit_log", audit_entries)
-    
-        artifact_results: list[dict[str, Any]] = []
-        tampered = False
-        unavailable = False
-        for artifact in manifest["artifacts"]:
-            if artifact["storage"] == "copied":
-                try:
-                    path = resolve_within(Path(artifact["path"]), root, must_exist=False)
-                except ValidationError as exc:
-                    artifact_results.append(
-                        {"path": artifact["path"], "verdict": "tampered", "reason": str(exc)}
-                    )
-                    tampered = True
-                    continue
-                if not path.is_file():
-                    artifact_results.append({"path": artifact["path"], "verdict": "unavailable"})
-                    unavailable = True
-                    continue
-                try:
-                    path = resolve_within(path, root)
-                except ValidationError as exc:
-                    artifact_results.append(
-                        {"path": artifact["path"], "verdict": "tampered", "reason": str(exc)}
-                    )
-                    tampered = True
-                    continue
-            else:
-                path = Path(artifact["path"])
-                if not path.is_file():
-                    artifact_results.append({"path": artifact["path"], "verdict": "unavailable"})
-                    unavailable = True
-                    continue
-            actual = sha256_file(path)
-            verdict = "valid" if secure_equal(actual, artifact["sha256"]) else "tampered"
-            artifact_results.append(
-                {"path": artifact["path"], "verdict": verdict, "actual_sha256": actual}
-            )
-            tampered |= verdict == "tampered"
-    
-        limitations: list[str] = []
-        try:
-            key = parse_secret_key(secret_value)
-        except ConfigurationError as exc:
-            key = None
-            audit_result = {
-                "verdict": "unavailable",
-                "reason": str(exc),
-                "entries": len(audit_entries),
-            }
-            unavailable = True
-        else:
->           ledger_result = AuditLedger(key, audit_entries).verify(expected_ledger_length)
-E           AttributeError: 'AuditLedger' object has no attribute 'verify'
-
-visiops/verification.py:100: AttributeError
 _______ test_verifier_accepts_complete_run_and_detects_artifact_mutation _______
 
     def test_verifier_accepts_complete_run_and_detects_artifact_mutation() -> None:
         with tempfile.TemporaryDirectory() as directory:
->           run = _finalized_run(Path(directory))
+            run = _finalized_run(Path(directory))
+            audit_count = len(json.loads((run / "audit_log.json").read_text()))
+            valid = verify_run(run, SECRET, expected_ledger_length=audit_count)
+>           assert valid.verdict.value == "valid"
+E           AssertionError: assert 'tampered' == 'valid'
+E             
+E             - valid
+E             + tampered
 
-tests/integration/test_run_verification.py:57: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-tests/integration/test_run_verification.py:32: in _finalized_run
-    result = GovernanceModule().finalize(
-visiops/modules/governance.py:292: in finalize
-    self.registry.validate("audit_log", ledger.entries if ledger else [])
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <visiops.core.schema_registry.SchemaRegistry object at 0x7ff4ab8a9540>
-name = 'audit_log'
-instance = [{'action': 'run_started', 'entry_hmac': 'ba05bb2330b28d2dae0af4529bb1dc5a9e7eab5ddbcfb0ab67a4ffcac9d5b9ab', 'entry_id...e829f24a7214dc9a3c30dce80', 'report_sha256': '31680025e631645b7b7be80ab26c5cbf5794c3604f1d8d59de41c7ef3551b90c'}, ...}]
-
-    def validate(self, name: str, instance: Any) -> None:
-        try:
-            from jsonschema import Draft202012Validator, FormatChecker
-            from referencing import Registry, Resource
-        except ImportError as exc:
-            raise ValidationError("jsonschema is required for contract validation") from exc
-        registry = Registry()
-        for schema in self._schemas.values():
-            registry = registry.with_resource(schema["$id"], Resource.from_contents(schema))
-        validator = Draft202012Validator(
-            self.get(name), registry=registry, format_checker=FormatChecker()
-        )
-        errors = sorted(validator.iter_errors(instance), key=lambda err: list(err.path))
-        if errors:
-            first = errors[0]
-            location = ".".join(str(part) for part in first.absolute_path) or "$"
->           raise ValidationError(f"{name} schema violation at {location}: {first.message}")
-E           visiops.core.errors.ValidationError: audit_log schema violation at 0: 'actor' is a required property
-
-visiops/core/schema_registry.py:51: ValidationError
+tests/integration/test_run_verification.py:60: AssertionError
 __ test_verifier_exposes_tail_completeness_limitation_without_expected_length __
 
     def test_verifier_exposes_tail_completeness_limitation_without_expected_length() -> None:
         with tempfile.TemporaryDirectory() as directory:
->           run = _finalized_run(Path(directory))
+            run = _finalized_run(Path(directory))
+            result = verify_run(run, SECRET)
+>           assert result.verdict.value == "valid"
+E           AssertionError: assert 'tampered' == 'valid'
+E             
+E             - valid
+E             + tampered
 
-tests/integration/test_run_verification.py:68: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-tests/integration/test_run_verification.py:32: in _finalized_run
-    result = GovernanceModule().finalize(
-visiops/modules/governance.py:292: in finalize
-    self.registry.validate("audit_log", ledger.entries if ledger else [])
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <visiops.core.schema_registry.SchemaRegistry object at 0x7ff4abadcd30>
-name = 'audit_log'
-instance = [{'action': 'run_started', 'entry_hmac': '3634bc79ba4c11d654f5d6f9c08bd68b99508f3894c23d959e159a8e3030b84d', 'entry_id...853a821ddd1b2d334c2377369', 'report_sha256': 'bb95aa42263c412ab46ae656cdbdf83d2f32a13badff5455d63846d9f77e0893'}, ...}]
-
-    def validate(self, name: str, instance: Any) -> None:
-        try:
-            from jsonschema import Draft202012Validator, FormatChecker
-            from referencing import Registry, Resource
-        except ImportError as exc:
-            raise ValidationError("jsonschema is required for contract validation") from exc
-        registry = Registry()
-        for schema in self._schemas.values():
-            registry = registry.with_resource(schema["$id"], Resource.from_contents(schema))
-        validator = Draft202012Validator(
-            self.get(name), registry=registry, format_checker=FormatChecker()
-        )
-        errors = sorted(validator.iter_errors(instance), key=lambda err: list(err.path))
-        if errors:
-            first = errors[0]
-            location = ".".join(str(part) for part in first.absolute_path) or "$"
->           raise ValidationError(f"{name} schema violation at {location}: {first.message}")
-E           visiops.core.errors.ValidationError: audit_log schema violation at 0: 'actor' is a required property
-
-visiops/core/schema_registry.py:51: ValidationError
+tests/integration/test_run_verification.py:70: AssertionError
 ___________ test_missing_copied_artifact_is_unavailable_not_tampered ___________
 
     def test_missing_copied_artifact_is_unavailable_not_tampered() -> None:
         with tempfile.TemporaryDirectory() as directory:
->           run = _finalized_run(Path(directory))
+            run = _finalized_run(Path(directory))
+            (run / "artifacts" / "inputs" / "sample.bin").unlink()
+            result = verify_run(run, SECRET)
+>           assert result.verdict.value == "unavailable"
+E           AssertionError: assert 'tampered' == 'unavailable'
+E             
+E             - unavailable
+E             + tampered
 
-tests/integration/test_run_verification.py:76: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-tests/integration/test_run_verification.py:32: in _finalized_run
-    result = GovernanceModule().finalize(
-visiops/modules/governance.py:292: in finalize
-    self.registry.validate("audit_log", ledger.entries if ledger else [])
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <visiops.core.schema_registry.SchemaRegistry object at 0x7ff4ab8fe6b0>
-name = 'audit_log'
-instance = [{'action': 'run_started', 'entry_hmac': 'ec75b9fa14b4283df6f01aa27d7f6dd0d7c5530cda0e47fe4b97bb3d0d14f6d3', 'entry_id...53cd34376e873a55051f1aaff', 'report_sha256': 'aef82852c7b3f5c29a0c70f2ab5b18e9473452ef972286df8ac28535619e7dce'}, ...}]
-
-    def validate(self, name: str, instance: Any) -> None:
-        try:
-            from jsonschema import Draft202012Validator, FormatChecker
-            from referencing import Registry, Resource
-        except ImportError as exc:
-            raise ValidationError("jsonschema is required for contract validation") from exc
-        registry = Registry()
-        for schema in self._schemas.values():
-            registry = registry.with_resource(schema["$id"], Resource.from_contents(schema))
-        validator = Draft202012Validator(
-            self.get(name), registry=registry, format_checker=FormatChecker()
-        )
-        errors = sorted(validator.iter_errors(instance), key=lambda err: list(err.path))
-        if errors:
-            first = errors[0]
-            location = ".".join(str(part) for part in first.absolute_path) or "$"
->           raise ValidationError(f"{name} schema violation at {location}: {first.message}")
-E           visiops.core.errors.ValidationError: audit_log schema violation at 0: 'actor' is a required property
-
-visiops/core/schema_registry.py:51: ValidationError
-_ DistributionShiftTests.test_high_entropy_ratio_is_fixed_review_and_dependency_is_declared _
-
-self = <test_distribution_shift.DistributionShiftTests testMethod=test_high_entropy_ratio_is_fixed_review_and_dependency_is_declared>
-
-    def test_high_entropy_ratio_is_fixed_review_and_dependency_is_declared(self) -> None:
-        reference_logits = np.tile([12.0, -12.0], (100, 1))
-        incoming_logits = np.zeros((12, 2), dtype=np.float32)
-        result = DistributionShiftModule().analyze(
-            reference_embeddings=self.reference,
-            incoming_embeddings=self.incoming,
-            reference_logits=reference_logits,
-            incoming_logits=incoming_logits,
-            model_suspicious=True,
-        )
-        drift = [
-            item
-            for item in result.assessment.findings
-            if item.finding_type.value == "possible_drift"
-        ]
->       self.assertEqual(drift[0].recommended_disposition.value, "review")
-E       IndexError: list index out of range
-
-tests/unit/test_distribution_shift.py:41: IndexError
-____ DistributionShiftTests.test_low_and_neutral_entropy_characterizations _____
-
-self = <test_distribution_shift.DistributionShiftTests testMethod=test_low_and_neutral_entropy_characterizations>
-
-    def test_low_and_neutral_entropy_characterizations(self) -> None:
-        uniform_reference = np.zeros((100, 2), dtype=np.float32)
-        confident_incoming = np.tile([12.0, -12.0], (12, 1))
-        low = DistributionShiftModule().analyze(
-            reference_embeddings=self.reference,
-            incoming_embeddings=self.incoming,
-            reference_logits=uniform_reference,
-            incoming_logits=confident_incoming,
-        )
-        self.assertEqual(low.characterization, "suspicious")
-    
-        rng = np.random.default_rng(7)
-        ref_logits = rng.normal(size=(100, 3)).astype(np.float32)
-        in_logits = rng.normal(size=(12, 3)).astype(np.float32)
-        neutral = DistributionShiftModule().analyze(
-            reference_embeddings=self.reference,
-            incoming_embeddings=self.incoming,
-            reference_logits=ref_logits,
-            incoming_logits=in_logits,
-        )
->       self.assertEqual(neutral.characterization, "inconclusive")
-E       AssertionError: 'suspicious' != 'inconclusive'
-E       - suspicious
-E       + inconclusive
-
-tests/unit/test_distribution_shift.py:64: AssertionError
-______ TestGlobSafety.test_pipeline_ignores_subdirectories_for_references ______
-
-self = <test_glob_safety.TestGlobSafety testMethod=test_pipeline_ignores_subdirectories_for_references>
-
-    def test_pipeline_ignores_subdirectories_for_references(self):
-        with tempfile.TemporaryDirectory() as td:
-            base = Path(td)
-    
-            # create config
-            config_path = base / "config.yaml"
-            config = {
-                "references": {"model_directory": str(base / "refs"), "dataset_manifest": "dummy"},
-                "dataset_manifest": "dummy",
-                "dataset_root": "dummy",
-                "num_classes": 10,
-                "resources": {
-                    "max_image_bytes": 100,
-                    "max_image_pixels": 100,
-                    "embedding_batch_size": 1,
-                    "neighbor_chunk_size": 1,
-                },
-                "seed": 42,
-                "detectors": {
-                    "phash_hamming_threshold": 1,
-                    "cosine_threshold": 0.9,
-                    "cosine_neighbors": 1,
-                    "outlier_percentile": 0.95,
-                    "source_p_value": 0.05,
-                    "source_rate_multiplier": 2.0,
-                },
-                "model": {"path": "dummy", "format": "pytorch", "architecture_id": "resnet18"},
-                "extractor_weights": "dummy",
-                "output_root": str(base / "out"),
-            }
-            with open(config_path, "w") as f:
-                yaml.dump(config, f)
-    
-            # create refs and a subfolder with a pt file
-            refs_dir = base / "refs"
-            refs_dir.mkdir()
-            (refs_dir / "clean1.pt").write_text("dummy")
-            sub_dir = refs_dir / "poisoned"
-            sub_dir.mkdir()
-            (sub_dir / "bad.pt").write_text("dummy")
-    
-            # We mock load_config and glob check
-            # Instead of running the full pipeline, we'll just check iterdir behavior
-            # by looking at the patch that logs a warning
-    
-            with patch("visiops.pipeline.load_config", return_value=config):
-                with patch("logging.warning") as mock_warn:
-                    with patch("visiops.pipeline.load_classification_manifest") as mock_lcm:
-                        mock_sample = MagicMock()
-                        mock_sample.image_path = "dummy.png"
-                        mock_lcm.return_value.samples = [mock_sample]
-                        with patch("visiops.pipeline.load_model"):
-                            with patch("visiops.pipeline.EmbeddingExtractor"):
-                                try:
-                                    VisiopsPipeline().run(config_path)
-                                except Exception:
-                                    import traceback
-    
-                                    traceback.print_exc()
-                                    pass
-    
->           mock_warn.assert_any_call(
-                f"Reference directory {refs_dir} contains subdirectories. They will be ignored."
-            )
-
-tests/unit/test_glob_safety.py:73: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <MagicMock name='warning' id='140692157601904'>
-args = ('Reference directory /tmp/tmp269fqx77/refs contains subdirectories. They will be ignored.',)
-kwargs = {}
-expected = call('Reference directory /tmp/tmp269fqx77/refs contains subdirectories. They will be ignored.')
-cause = None, actual = []
-expected_string = "warning('Reference directory /tmp/tmp269fqx77/refs contains subdirectories. They will be ignored.')"
-
-    def assert_any_call(self, /, *args, **kwargs):
-        """assert the mock has been called with the specified arguments.
-    
-        The assert passes if the mock has *ever* been called, unlike
-        `assert_called_with` and `assert_called_once_with` that only pass if
-        the call is the most recent one."""
-        expected = self._call_matcher(_Call((args, kwargs), two=True))
-        cause = expected if isinstance(expected, Exception) else None
-        actual = [self._call_matcher(c) for c in self.call_args_list]
-        if cause or expected not in _AnyComparer(actual):
-            expected_string = self._format_mock_call_signature(args, kwargs)
->           raise AssertionError(
-                '%s call not found' % expected_string
-            ) from cause
-E           AssertionError: warning('Reference directory /tmp/tmp269fqx77/refs contains subdirectories. They will be ignored.') call not found
-
-/opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/unittest/mock.py:1000: AssertionError
------------------------------ Captured stderr call -----------------------------
-Traceback (most recent call last):
-  File "/home/runner/work/SIH-Project/SIH-Project/visiops/pipeline.py", line 213, in run
-    f1 = DataIntegrityModule(
-  File "/home/runner/work/SIH-Project/SIH-Project/visiops/modules/data_integrity.py", line 498, in analyze
-    method_findings, method_affected = operation()
-  File "/home/runner/work/SIH-Project/SIH-Project/visiops/modules/data_integrity.py", line 494, in <lambda>
-    ("phash_cosine_duplicates", lambda: _duplicate_findings(manifest, matrix, self.config)),
-  File "/home/runner/work/SIH-Project/SIH-Project/visiops/modules/data_integrity.py", line 123, in _duplicate_findings
-    pairs = _phash_pairs(manifest, config.phash_distance)
-  File "/home/runner/work/SIH-Project/SIH-Project/visiops/modules/data_integrity.py", line 81, in _phash_pairs
-    with Image.open(sample.image_path) as image:
-  File "/opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/site-packages/PIL/Image.py", line 3247, in open
-    fp = builtins.open(filename, "rb")
-FileNotFoundError: [Errno 2] No such file or directory: 'dummy.png'
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/home/runner/work/SIH-Project/SIH-Project/tests/unit/test_glob_safety.py", line 66, in test_pipeline_ignores_subdirectories_for_references
-    VisiopsPipeline().run(config_path)
-  File "/home/runner/work/SIH-Project/SIH-Project/visiops/pipeline.py", line 314, in run
-    assessments["F1"] = _engine_error(Pillar.F1, "data_integrity", exc)
-UnboundLocalError: local variable 'Pillar' referenced before assignment
+tests/integration/test_run_verification.py:79: AssertionError
 _ GovernanceTests.test_finalization_validates_and_commits_manifest_from_audit __
 
 self = <test_governance.GovernanceTests testMethod=test_finalization_validates_and_commits_manifest_from_audit>
@@ -443,7 +62,7 @@ self = <test_governance.GovernanceTests testMethod=test_finalization_validates_a
                 pillar: ModuleAssessment(ModuleStatus.COMPLETED, (), (f"method_{pillar}",), ())
                 for pillar in ("F1", "F2", "F3", "F4")
             }
->           result = GovernanceModule().finalize(
+            result = GovernanceModule().finalize(
                 stager=stager,
                 assessments=assessments,
                 assets={"dataset": {}, "model": {}, "references": {}},
@@ -466,143 +85,43 @@ self = <test_governance.GovernanceTests testMethod=test_finalization_validates_a
                 ledger=ledger,
                 acceptance_gates={},
             )
-
-tests/unit/test_governance.py:74: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-visiops/modules/governance.py:292: in finalize
-    self.registry.validate("audit_log", ledger.entries if ledger else [])
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <visiops.core.schema_registry.SchemaRegistry object at 0x7ff5721ab670>
-name = 'audit_log'
-instance = [{'action': 'run_started', 'entry_hmac': 'd5ec1ce9509b7a4a575f3da703f78ca7eaed28df0ece0f00283b9a380811358c', 'entry_id...2233eba62eb0b5b1db6b61e8d', 'report_sha256': '071e0be08cd64d1470ec0a3ae0cbec4988b26bc5d2f5ca972be03b4e073933a4'}, ...}]
-
-    def validate(self, name: str, instance: Any) -> None:
-        try:
-            from jsonschema import Draft202012Validator, FormatChecker
-            from referencing import Registry, Resource
-        except ImportError as exc:
-            raise ValidationError("jsonschema is required for contract validation") from exc
-        registry = Registry()
-        for schema in self._schemas.values():
-            registry = registry.with_resource(schema["$id"], Resource.from_contents(schema))
-        validator = Draft202012Validator(
-            self.get(name), registry=registry, format_checker=FormatChecker()
-        )
-        errors = sorted(validator.iter_errors(instance), key=lambda err: list(err.path))
-        if errors:
-            first = errors[0]
-            location = ".".join(str(part) for part in first.absolute_path) or "$"
->           raise ValidationError(f"{name} schema violation at {location}: {first.message}")
-E           visiops.core.errors.ValidationError: audit_log schema violation at 0: 'actor' is a required property
-
-visiops/core/schema_registry.py:51: ValidationError
-________________ TestOODDifficulty.test_ood_difficulty_metadata ________________
-
-self = <test_ood_difficulty.TestOODDifficulty testMethod=test_ood_difficulty_metadata>
-
-    def test_ood_difficulty_metadata(self):
-        reference = np.random.randn(10, 16)
-        incoming = np.random.randn(5, 16)
-    
-        ref_logits = np.random.randn(10, 10)
-        inc_logits = np.random.randn(5, 10)
-    
-        module = DistributionShiftModule()
->       result_easy = module.analyze(
-            reference_embeddings=reference,
-            incoming_embeddings=incoming,
-            reference_logits=ref_logits,
-            incoming_logits=inc_logits,
-            ood_pair_difficulty="easy_baseline",
-        )
-E       TypeError: DistributionShiftModule.analyze() got an unexpected keyword argument 'ood_pair_difficulty'
-
-tests/unit/test_ood_difficulty.py:17: TypeError
-_______ ProvenanceTests.test_generation_verification_and_output_mutation _______
-
-self = <test_provenance.ProvenanceTests testMethod=test_generation_verification_and_output_mutation>
-
-    def test_generation_verification_and_output_mutation(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            input_path = root / "input.png"
-            model_path = root / "model.pt"
-            input_path.write_bytes(b"encoded-image")
-            model_path.write_bytes(b"model-weights")
-            run = root / "run"
-            run.mkdir()
-            module = InferenceProvenanceModule(SECRET)
->           generated = module.generate(
-                input_path=input_path,
-                model_path=model_path,
-                config={"seed": 42},
-                output=np.array([0.1, 0.9]),
-                run_root=run,
-                sequence_number=1,
+            self.assertEqual(result.overall_disposition, Disposition.ACCEPT)
+            self.assertTrue(result.run_dir.is_dir())
+            report = json.loads((result.run_dir / "assurance_report.json").read_text())
+            manifest = json.loads((result.run_dir / "run_manifest.json").read_text())
+            audit = json.loads((result.run_dir / "audit_log.json").read_text())
+            self.assertEqual(report["overall_disposition"], "accept")
+            self.assertFalse(
+                any(item["path"] == "audit_log.json" for item in manifest["artifacts"])
             )
-E           AttributeError: 'InferenceProvenanceModule' object has no attribute 'generate'
-
-tests/unit/test_provenance.py:27: AttributeError
-_____ ProvenanceTests.test_ledger_detects_bit_flip_deletion_and_reordering _____
-
-self = <test_provenance.ProvenanceTests testMethod=test_ledger_detects_bit_flip_deletion_and_reordering>
-
-    def test_ledger_detects_bit_flip_deletion_and_reordering(self) -> None:
-        key = bytes.fromhex(SECRET)
-        ledger = AuditLedger(key)
->       ledger.append("run_started", {"report_id": "r"}, timestamp="2026-01-01T00:00:00Z")
-E       TypeError: AuditLedger.append() got an unexpected keyword argument 'timestamp'
-
-tests/unit/test_provenance.py:69: TypeError
-__ ProvenanceTests.test_missing_key_is_unsigned_and_releases_canonical_output __
-
-self = <test_provenance.ProvenanceTests testMethod=test_missing_key_is_unsigned_and_releases_canonical_output>
-
-    def test_missing_key_is_unsigned_and_releases_canonical_output(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            input_path, model_path = root / "in.bin", root / "model.bin"
-            input_path.write_bytes(b"input")
-            model_path.write_bytes(b"model")
-            run = root / "run"
-            run.mkdir()
->           generated = InferenceProvenanceModule("").generate(
-                input_path=input_path,
-                model_path=model_path,
-                config={},
-                output=[1, 2],
-                run_root=run,
-                sequence_number=1,
+            self.assertEqual(audit[-1]["action"], "run_finalized")
+            self.assertEqual(
+                audit[-1]["payload"]["manifest_sha256"],
+                sha256_file(result.run_dir / "run_manifest.json"),
             )
-E           AttributeError: 'InferenceProvenanceModule' object has no attribute 'generate'
+>           self.assertEqual(
+                AuditLedger(b"k" * 32, audit).verify(expected_length=len(audit)).verdict.value,
+                "valid",
+            )
+E           AssertionError: 'tampered' != 'valid'
+E           - tampered
+E           + valid
 
-tests/unit/test_provenance.py:54: AttributeError
-_______ ProvenanceTests.test_tail_completeness_requires_expected_length ________
-
-self = <test_provenance.ProvenanceTests testMethod=test_tail_completeness_requires_expected_length>
-
-    def test_tail_completeness_requires_expected_length(self) -> None:
-        key = bytes.fromhex(SECRET)
-        ledger = AuditLedger(key)
->       ledger.append("run_started", {}, timestamp="2026-01-01T00:00:00Z")
-E       TypeError: AuditLedger.append() got an unexpected keyword argument 'timestamp'
-
-tests/unit/test_provenance.py:91: TypeError
+tests/unit/test_governance.py:111: AssertionError
 =========================== short test summary info ============================
-FAILED tests/integration/test_report_flow.py::test_unsigned_fail_open_finalizes_as_review_without_fake_audit_protection - AttributeError: 'AuditLedger' object has no attribute 'verify'
-FAILED tests/integration/test_run_verification.py::test_verifier_accepts_complete_run_and_detects_artifact_mutation - visiops.core.errors.ValidationError: audit_log schema violation at 0: 'actor' is a required property
-FAILED tests/integration/test_run_verification.py::test_verifier_exposes_tail_completeness_limitation_without_expected_length - visiops.core.errors.ValidationError: audit_log schema violation at 0: 'actor' is a required property
-FAILED tests/integration/test_run_verification.py::test_missing_copied_artifact_is_unavailable_not_tampered - visiops.core.errors.ValidationError: audit_log schema violation at 0: 'actor' is a required property
-FAILED tests/unit/test_distribution_shift.py::DistributionShiftTests::test_high_entropy_ratio_is_fixed_review_and_dependency_is_declared - IndexError: list index out of range
-FAILED tests/unit/test_distribution_shift.py::DistributionShiftTests::test_low_and_neutral_entropy_characterizations - AssertionError: 'suspicious' != 'inconclusive'
-- suspicious
-+ inconclusive
-FAILED tests/unit/test_glob_safety.py::TestGlobSafety::test_pipeline_ignores_subdirectories_for_references - AssertionError: warning('Reference directory /tmp/tmp269fqx77/refs contains subdirectories. They will be ignored.') call not found
-FAILED tests/unit/test_governance.py::GovernanceTests::test_finalization_validates_and_commits_manifest_from_audit - visiops.core.errors.ValidationError: audit_log schema violation at 0: 'actor' is a required property
-FAILED tests/unit/test_ood_difficulty.py::TestOODDifficulty::test_ood_difficulty_metadata - TypeError: DistributionShiftModule.analyze() got an unexpected keyword argument 'ood_pair_difficulty'
-FAILED tests/unit/test_provenance.py::ProvenanceTests::test_generation_verification_and_output_mutation - AttributeError: 'InferenceProvenanceModule' object has no attribute 'generate'
-FAILED tests/unit/test_provenance.py::ProvenanceTests::test_ledger_detects_bit_flip_deletion_and_reordering - TypeError: AuditLedger.append() got an unexpected keyword argument 'timestamp'
-FAILED tests/unit/test_provenance.py::ProvenanceTests::test_missing_key_is_unsigned_and_releases_canonical_output - AttributeError: 'InferenceProvenanceModule' object has no attribute 'generate'
-FAILED tests/unit/test_provenance.py::ProvenanceTests::test_tail_completeness_requires_expected_length - TypeError: AuditLedger.append() got an unexpected keyword argument 'timestamp'
-13 failed, 35 passed in 3.62s
+FAILED tests/integration/test_run_verification.py::test_verifier_accepts_complete_run_and_detects_artifact_mutation - AssertionError: assert 'tampered' == 'valid'
+  
+  - valid
+  + tampered
+FAILED tests/integration/test_run_verification.py::test_verifier_exposes_tail_completeness_limitation_without_expected_length - AssertionError: assert 'tampered' == 'valid'
+  
+  - valid
+  + tampered
+FAILED tests/integration/test_run_verification.py::test_missing_copied_artifact_is_unavailable_not_tampered - AssertionError: assert 'tampered' == 'unavailable'
+  
+  - unavailable
+  + tampered
+FAILED tests/unit/test_governance.py::GovernanceTests::test_finalization_validates_and_commits_manifest_from_audit - AssertionError: 'tampered' != 'valid'
+- tampered
++ valid
+4 failed, 36 passed, 8 skipped in 2.30s
